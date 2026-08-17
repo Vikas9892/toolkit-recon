@@ -19,6 +19,18 @@ throughput and breadth for auditability.
 | `logs/trace.jsonl` | One execution trace per app: queries, URLs, tokens, wall time, confidence |
 | `data/checkpoints/` | Rewritten after every app, so a crash never costs the run |
 
+Verification artifacts:
+
+| Path | Contents |
+|---|---|
+| `data/validation_report.json` | Layer 1: per-rule counts, affected apps, re-run queues |
+| `data/pass1.validated.json` | Pass 1 with Layer 1 corrections applied |
+| `data/pass2.json` | Layer 2: re-checked rows, corroborated or disputed |
+| `data/disagreements.json` | Every field where the two passes disagreed |
+| `data/pass3.json` | Layer 3: browser-verified resolutions |
+| `evidence/screenshots/{slug}.png` | What the browser actually saw |
+| `data/accuracy_progression.json` | The X < Y < Z scaffold (see below) |
+
 ---
 
 ## Quick start
@@ -41,6 +53,94 @@ Then read the results:
 python -m toolkit_recon.report                   # distributions + process metrics
 python -m toolkit_recon.report --triage          # the human review queue
 ```
+
+### The three verification layers
+
+Each layer is progressively more expensive and progressively narrower in
+scope. The rule that holds across all three: **no layer accepts a trust signal
+the model supplied.**
+
+```bash
+# Layer 1 — structural validation (seconds, no network)
+python -m toolkit_recon.validate
+
+# Layer 2 — independent second pass over weak + flagged rows
+python -m toolkit_recon --pass-number 2 --recheck-from 1 \
+    --recheck-file pass1.validated.json --include-flagged --out pass2.raw.json
+python -m toolkit_recon.corroborate
+
+# Layer 3 — browser verification, disputed fields only
+python -m playwright install chromium
+python -m toolkit_recon.browser_verify
+
+# The progression
+python -m toolkit_recon.progression
+```
+
+**Layer 1 — structural validation** (`validate.py`). Eight deterministic rules
+over the row, the trace, and the archived evidence. Actions can `force_low` or
+`downgrade` one level, never upgrade — pinned by a test. Writes
+`validation_report.json` and `pass1.validated.json`; `pass1.json` is left
+untouched, because the progression has to measure the raw first pass as it
+actually was.
+
+| Rule | Catches | Action |
+|---|---|---|
+| R1 | `evidence_urls` empty | force low |
+| R2 | cited a URL we never fetched | flag |
+| R3 | `has_mcp` without a page that mentions MCP | flag |
+| R4 | `buildable=yes` vs `partner_gated`/`no_public_api` | flag |
+| R5 | `api_style=[None]` vs `buildable=yes` | flag |
+| R6 | `auth_methods=[Unknown]` | force low |
+| R7 | all evidence off official domains | downgrade |
+| R8 | all archived docs below `min_doc_chars` | flag |
+
+**Layer 2 — independent second pass** (`corroborate.py`). Pass 2 changes both
+the search queries *and* the extraction framing. Pass 1 asks what the product
+offers; pass 2 asks what will break when you try to ship it. Agreement between
+two runs reasoning from opposite priors is corroboration; agreement between a
+run and a copy of itself is not. All compared fields agreeing promotes
+confidence one level (capped at `high`); any disagreement marks the field
+disputed and routes the row to Layer 3. Writes `pass2.json` and
+`disagreements.json`.
+
+**Layer 3 — browser verification** (`browser_verify.py`). Disputed fields
+only. Playwright loads the official docs URL, scrolls lazy content into the
+DOM, and captures both text and a screenshot to
+`evidence/screenshots/{slug}.png`. The judge model must return a **verbatim
+quote**, and `quote_is_grounded` checks that quote literally occurs in the text
+just captured. An ungrounded quote resolves nothing — the field records
+`unresolvable`, so an invented citation fails closed rather than settling a
+dispute in favour of a fabrication. Resolutions: `pass1_correct`,
+`pass2_correct`, `both_wrong`, `unresolvable`.
+
+### The accuracy progression, and what it deliberately does not claim
+
+`accuracy_progression.json` ships with `correct` and `accuracy` as **null**.
+
+That is the point. A pipeline that scores its own correctness is measuring
+self-consistency, not accuracy. Inter-pass agreement is the tempting proxy and
+it is the wrong one: two passes can agree and both be wrong, which is exactly
+what the `both_wrong` resolution exists to catch. So every figure that is a
+matter of record — rows touched, flagged, promoted, disputed, resolved — is
+computed from artifacts on disk, and the three accuracy figures are left for a
+human audit to supply:
+
+```bash
+python -m toolkit_recon.progression --write-template 20   # labelling sheet
+# a human fills in ground truth -> data/human_audit.json
+python -m toolkit_recon.progression --audit-file data/human_audit.json
+```
+
+The sample is drawn disputed-first, then low/medium confidence, but keeps
+high-confidence rows as a control. Auditing only the rows the pipeline already
+doubts would hide the failure that matters most — systematic overconfidence.
+
+Scoring is per-row exact match across the audited fields, and each pass is
+scored only over the rows it actually covered. Passes 2 and 3 are deliberately
+narrower than pass 1, so their denominators differ and are reported separately
+as `scored_against`; counting an uncovered row as wrong would punish correct
+scoping.
 
 ### Re-check passes and the accuracy delta
 
@@ -223,7 +323,11 @@ src/toolkit_recon/
   pipeline.py    orchestration, per-app isolation, per-pass query sets
   cli.py         entry point and run summary
   report.py      post-run analysis, triage queue, pass-to-pass delta
-tests/           34 tests, no network required
+  validate.py       LAYER 1  structural rules over row + trace + evidence
+  corroborate.py    LAYER 2  inter-pass agreement, disputes, promotion
+  browser_verify.py LAYER 3  Playwright + grounded-quote verification
+  progression.py    accuracy progression scaffold + human audit ingest
+tests/           61 tests, no network required
 ```
 
 ---

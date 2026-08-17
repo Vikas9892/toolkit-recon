@@ -10,6 +10,7 @@ dependencies = [
     "pydantic-settings>=2.5",
     "python-dotenv>=1.0",
     "beautifulsoup4>=4.12",
+    "playwright>=1.48",
 ]
 
 [project.scripts]
