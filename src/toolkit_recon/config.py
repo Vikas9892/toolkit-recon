@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     # body, cookie wall) is not evidence. Counting it would let an empty page
     # satisfy "official docs reached" and inflate the confidence score.
     min_doc_chars: int = 250
+    # Higher bar for Layer 3: a live docs page that renders correctly yields
+    # thousands of characters, so a few hundred means we got a stub or a wall.
+    min_browser_chars: int = 2_500
     max_doc_chars: int = 14_000  # what we archive to data/raw (full evidence)
     request_timeout: float = 120.0
     max_retries: int = 4

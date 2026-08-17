@@ -289,11 +289,21 @@ async def run(limit: int | None = None) -> dict:
             text, shot, err = await capture(url, slug)
             field_results: list[dict] = []
 
+            # Same floor as Layer 1, for the same reason. Some docs sites serve
+            # headless browsers a stub (Notion returns an llms.txt pointer of
+            # ~2k chars, not the reference). Judging a dispute against a stub
+            # would manufacture a resolution out of a page we never really read.
+            too_thin = not err and len(text) < settings.min_browser_chars
+
             for d in grouped[name]:
-                if err or not text:
+                if err or too_thin:
                     field_results.append({
                         "field": d["field"], "resolution": "unresolvable",
-                        "reason": err or "empty page text",
+                        "reason": err or (
+                            f"captured page too thin ({len(text)} chars < "
+                            f"{settings.min_browser_chars}); likely a stub "
+                            f"served to headless browsers"
+                        ),
                         "pass1": d["pass1"], "pass2": d["pass2"],
                     })
                     continue

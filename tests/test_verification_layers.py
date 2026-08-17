@@ -194,6 +194,16 @@ def test_empty_or_trivial_quote_is_rejected():
     assert not quote_is_grounded("OAuth2", PAGE)  # too short to be evidence
 
 
+def test_browser_floor_is_stricter_than_the_fetch_floor():
+    """A live page that renders yields thousands of chars. Notion served the
+    headless browser a ~2k llms.txt stub instead of its reference docs;
+    judging a dispute against that would invent a resolution."""
+    from toolkit_recon.config import settings
+
+    assert settings.min_browser_chars > settings.min_doc_chars
+    assert settings.min_browser_chars >= 2000
+
+
 def test_paraphrase_is_rejected():
     assert not quote_is_grounded(
         "Every request needs an OAuth2 token in the header.", PAGE
