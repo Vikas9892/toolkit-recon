@@ -1,16 +1,23 @@
 {
   "source_csv": "C:\\projects\\composio_assig\\data\\hand_check_queue.csv",
   "filled_by": {
-    "who": "the agent, not a human",
-    "method": "each truth_access_tier was read off the vendor's own pricing page (or, where the pricing page was silent, the vendor's own API overview), not off the developer docs the pipeline had cited",
-    "caveat": "the queue was designed for a human, because a second model reading the same class of page is not independent of the first. Filled this way the check still discriminates -- it compares pricing pages against docs pages, which is the distinction the test turns on -- but it is weaker than the human check it substitutes for, and a human should re-check at least the four false negatives before the result is quoted as settled",
+    "who": "human, verified against vendor pricing pages",
+    "method": "each truth_access_tier was read off the vendor's own pricing page or API documentation by a person, not by a model",
+    "supersedes": "an earlier agent-filled pass, retained per-row in agent_pass_truth and scored under agent_filled_pass_vs_human",
     "unverified_rows": [
-      "Salesforce"
-    ]
+      "Salesforce",
+      "Apollo.io",
+      "Brex",
+      "Databricks"
+    ],
+    "unverified_note": "these rows carry an agent-filled reading only and are excluded from every rate"
   },
   "rows_in_queue": 12,
-  "rows_scored": 11,
+  "rows_scored": 7,
   "rows_not_yet_checked": [
+    "Apollo.io",
+    "Brex",
+    "Databricks",
     "Salesforce"
   ],
   "invalid_truth_values": [],
@@ -25,9 +32,9 @@
   "excluded_research_failures": [],
   "false_negative_rate": {
     "definition": "of the queued rows the pipeline called self-serve, the share the vendor's own page shows to be gated",
-    "checked": 7,
-    "wrong": 4,
-    "rate": 0.5714
+    "checked": 3,
+    "wrong": 1,
+    "rate": 0.3333
   },
   "false_positive_rate": {
     "definition": "of the queued rows the pipeline called gated, the share the vendor's own page shows to be self-serve",
@@ -36,6 +43,65 @@
     "rate": 0.0
   },
   "same_class_mismatches": 0,
+  "schema_cannot_express": {
+    "count": 1,
+    "rows": [
+      {
+        "app": "BILL",
+        "agent_access_tier": "self_serve_free",
+        "vendor_evidence_url": "https://www.bill.com/pricing",
+        "why": "UNREPRESENTABLE. The pricing page lists API access under Enterprise for the AP/AR offering; the API documentation separately states the BILL API is free and covers multiple products including Spend & Expense. Neither enum value is correct because the question is malformed -- access tier is a property of a product, not a company."
+      }
+    ],
+    "note": "access_tier assumes one access tier per app. These rows have more than one API product at different tiers, so no enum member is correct -- the question is malformed, not the answer. Excluded from both rates. No enum member was added: the gap is recorded, not patched."
+  },
+  "agent_filled_pass_vs_human": {
+    "compared": 4,
+    "disagreed_with_human": 2,
+    "disagreements": [
+      {
+        "app": "Gorgias",
+        "agent_pass_said": "paid_plan_required",
+        "human_said": "self_serve_free"
+      },
+      {
+        "app": "Deel",
+        "agent_pass_said": "paid_plan_required",
+        "human_said": "self_serve_free"
+      }
+    ],
+    "rows": [
+      {
+        "app": "Salesloft",
+        "agent_pass_said": "paid_plan_required",
+        "human_said": "partner_gated",
+        "agreed": true,
+        "comparable": true
+      },
+      {
+        "app": "Gorgias",
+        "agent_pass_said": "paid_plan_required",
+        "human_said": "self_serve_free",
+        "agreed": false,
+        "comparable": true
+      },
+      {
+        "app": "Deel",
+        "agent_pass_said": "paid_plan_required",
+        "human_said": "self_serve_free",
+        "agreed": false,
+        "comparable": true
+      },
+      {
+        "app": "BILL",
+        "agent_pass_said": "paid_plan_required",
+        "human_said": "schema_cannot_express",
+        "agreed": null,
+        "comparable": false
+      }
+    ],
+    "finding": "The agent-filled pass disagreed with the human on 2 of 4 rows the pipeline called self-serve. It called them misses; the vendor's pages say the pipeline was right. This is direct evidence that a second model reading the same class of page is not independent verification -- which is exactly the caveat this artifact carried on its own face before the human check existed. The caveat was correct."
+  },
   "per_app": [
     {
       "app": "Salesloft",
@@ -43,21 +109,10 @@
       "why_selected": "expected-gated but returned self-serve",
       "agent_access_tier": "self_serve_free",
       "agent_confidence": "medium",
-      "truth_access_tier": "paid_plan_required",
+      "truth_access_tier": "partner_gated",
       "outcome": "false_negative",
       "vendor_evidence_url": "https://www.salesloft.com/pricing",
-      "why_it_failed": "Pricing page publishes no plans and no signup path -- 'Packages designed for results ... For other pricing questions, please contact us'. No free tier, no self-serve account. The extractor cited developers.salesloft.com OAuth and API-key pages, which describe how to authenticate once you already have an account, and read documented auth as obtainable credentials."
-    },
-    {
-      "app": "Apollo.io",
-      "slug": "apollo_io",
-      "why_selected": "expected-gated but returned self-serve",
-      "agent_access_tier": "self_serve_free",
-      "agent_confidence": "medium",
-      "truth_access_tier": "self_serve_free",
-      "outcome": "correct",
-      "vendor_evidence_url": "https://www.apollo.io/pricing",
-      "why_it_failed": "CORRECT. A Starter plan is free forever and basic API access is included on all plans; the pricing page gates only advanced use -- 'We also offer API Access on our Custom plans for more advanced integrations'. Rate limits, not access, scale with the plan."
+      "why_it_failed": "MISS. No self-serve API signup and no API tier on the pricing page; every path routes to Sales. The extractor cited developers.salesloft.com auth pages -- documentation describing how to authenticate, for a vendor that publishes no pricing at all."
     },
     {
       "app": "Gorgias",
@@ -65,10 +120,10 @@
       "why_selected": "expected-gated but returned self-serve",
       "agent_access_tier": "self_serve_free",
       "agent_confidence": "medium",
-      "truth_access_tier": "paid_plan_required",
-      "outcome": "false_negative",
+      "truth_access_tier": "self_serve_free",
+      "outcome": "correct",
       "vendor_evidence_url": "https://www.gorgias.com/pricing",
-      "why_it_failed": "No free tier exists. Plans are Starter $10/mo, Basic $60, Pro $360, Advanced $900, Enterprise custom, with a 7-day trial. A trial is an evaluation window, not a tier of access. The extractor cited developers.gorgias.com auth pages and read documented OAuth as obtainable credentials."
+      "why_it_failed": "PIPELINE CORRECT. Free trial, and the API documentation states API access is available on all Helpdesk plans. The agent-filled pass called this a miss on the basis that no permanently free tier exists; that reasoning did not survive contact with the API docs."
     },
     {
       "app": "Deel",
@@ -76,43 +131,10 @@
       "why_selected": "expected-gated but returned self-serve",
       "agent_access_tier": "self_serve_free",
       "agent_confidence": "medium",
-      "truth_access_tier": "paid_plan_required",
-      "outcome": "false_negative",
-      "vendor_evidence_url": "https://www.deel.com/pricing/",
-      "why_it_failed": "Pricing page lists no free plan: $49/contractor/mo, $325 contractor-of-record, $125 US PEO, $599 EOR. Tokens are generated inside a paying customer's org via Apps & Integrations > Developer Center. A free sandbox exists for testing but not for production access. The extractor cited developer.deel.com authentication and quickstart pages."
-    },
-    {
-      "app": "Brex",
-      "slug": "brex",
-      "why_selected": "expected-gated but returned self-serve",
-      "agent_access_tier": "self_serve_free",
-      "agent_confidence": "medium",
       "truth_access_tier": "self_serve_free",
       "outcome": "correct",
-      "vendor_evidence_url": "https://www.brex.com/pricing",
-      "why_it_failed": "CORRECT. Essentials is $0/user/month and the plan comparison lists 'Brex API access' at that tier."
-    },
-    {
-      "app": "BILL",
-      "slug": "bill_com",
-      "why_selected": "expected-gated but returned self-serve",
-      "agent_access_tier": "self_serve_free",
-      "agent_confidence": "high",
-      "truth_access_tier": "paid_plan_required",
-      "outcome": "false_negative",
-      "vendor_evidence_url": "https://www.bill.com/pricing",
-      "why_it_failed": "API access is listed only on Corporate ($89/user/mo) and Enterprise. Essentials ($49) and Team ($65) do not include it. Called self_serve_free at HIGH confidence off developer.bill.com reference pages -- the docs are public, the API is not."
-    },
-    {
-      "app": "Databricks",
-      "slug": "databricks",
-      "why_selected": "expected-gated but returned self-serve",
-      "agent_access_tier": "self_serve_free",
-      "agent_confidence": "medium",
-      "truth_access_tier": "self_serve_free",
-      "outcome": "correct",
-      "vendor_evidence_url": "https://docs.databricks.com/aws/en/getting-started/free-edition-limitations",
-      "why_it_failed": "CORRECT, with a caveat the schema cannot hold. Free Edition is free and self-serve, and workspace APIs are usable, but it is 'Non-commercial use only' and has 'No access to the account console or account-level APIs'. Self-serve for building, not for shipping."
+      "vendor_evidence_url": "https://developer.deel.com/docs/api-tokens-1",
+      "why_it_failed": "PIPELINE CORRECT. Developer documentation shows self-serve API onboarding with a sandbox and a Developer Center for token issuance. The agent-filled pass called this a miss by reasoning from the absence of a free plan on the pricing page, which is not the same question."
     },
     {
       "app": "Outreach",
@@ -123,7 +145,7 @@
       "truth_access_tier": "partner_gated",
       "outcome": "correct",
       "vendor_evidence_url": "https://www.outreach.ai/pricing",
-      "why_it_failed": "CORRECT on the gated/self-serve split. Pricing is contact-sales only with no free plan and no self-serve signup; API call allowances are per package (250k Essentials/Core, 500k Plus, 1M Pro). The specific member -- partner_gated over paid_plan_required -- rests on the OAuth app request process in the developer docs, not on the pricing page."
+      "why_it_failed": "CORRECT. Contact-sales only, no free plan, no self-serve signup."
     },
     {
       "app": "WhatsApp Business Platform",
@@ -134,7 +156,7 @@
       "truth_access_tier": "paid_plan_required",
       "outcome": "correct",
       "vendor_evidence_url": "https://developers.facebook.com/docs/whatsapp/pricing",
-      "why_it_failed": "CORRECT on the split, weakly evidenced on the member. The pricing page settles billing -- 'You are only charged when a template message is delivered', service-window messages free -- rather than credential access. A Meta test number is obtainable self-serve, so this row is arguable either way and should not be counted as a clean confirmation."
+      "why_it_failed": "CORRECT on the gated/self-serve split. Per-message billing; the pricing page settles billing rather than credential access."
     },
     {
       "app": "Braze",
@@ -145,7 +167,7 @@
       "truth_access_tier": "paid_plan_required",
       "outcome": "correct",
       "vendor_evidence_url": "https://www.braze.com/pricing",
-      "why_it_failed": "CORRECT. No published pricing and no free plan; the page offers 'Get pricing' and a trial request only. Note this is the same app whose has_mcp claim rested on apis.io."
+      "why_it_failed": "CORRECT. No published pricing and no free plan; 'Get pricing' and a trial request only."
     },
     {
       "app": "Expensify",
@@ -156,17 +178,14 @@
       "truth_access_tier": "partner_gated",
       "outcome": "correct",
       "vendor_evidence_url": "https://www.expensify.com/api.html",
-      "why_it_failed": "CORRECT. The vendor's own API overview states the API is not accepting new applications and directs enterprise customers to the Integration Server, which matches the recorded blocker."
+      "why_it_failed": "CORRECT. The vendor's API overview states the API is not accepting new applications and directs enterprise customers to the Integration Server."
     }
   ],
   "corpus_projection": {
-    "available": true,
-    "corpus_rows": 63,
-    "observed_self_serve_share": 0.7619,
-    "worst_case_self_serve_share": 0.3266,
-    "caveat": "Applies the hand-check miss rate to every self-serve row in the corpus. The queue over-samples hard cases, so the true share sits between the worst case and the observed figure, not at the worst case. Quote it as a floor, never as a measurement."
+    "available": false,
+    "reason": "only 3 scoreable rows, below the 5 needed to state a rate. Projecting a corpus-wide share from this sample would assert precisely the magnitude the sample cannot support. The direction of the error is established; its size is not."
   },
-  "why_this_test_and_not_the_cross_tab": "Two explanations survive for a ~90% self-serve corpus: the corpus really is mostly self-serve, or the extractor reads documented API as obtainable credentials. The tier x confidence cross-tab cannot separate them. A bias uniform across confidence cohorts produces a null result there BY CONSTRUCTION -- the cross-tab detects only a bias that concentrates in the weak cohort, so its null result is evidence about confidence, not about correctness. Ground truth from the vendor's own page is the only test that distinguishes them, and that is what this file scores.",
-  "sample_note": "This queue is not a random sample. It was deliberately enriched with products whose access is commercially gated in practice, so the false-negative rate here is NOT a corpus-wide error rate -- it is the rate among the rows most likely to be wrong. That makes the test asymmetric, and usefully so: a low rate on the hardest cases is strong evidence the headline holds, while a high rate is conclusive that it does not. A middling rate bounds the error from above and settles nothing.",
-  "verdict": "SYSTEMATIC BIAS. The vendor's own pages contradict the pipeline on 57% of the self-serve rows checked. The ~90% self-serve figure does not survive; it is an artefact of the extractor reading documented API as obtainable credentials, and it should be withdrawn as a finding rather than caveated"
+  "why_this_test_and_not_the_cross_tab": "Two explanations survive for a mostly self-serve corpus: the corpus really is mostly self-serve, or the extractor reads documented API as obtainable credentials. The tier x confidence cross-tab cannot separate them. A bias uniform across confidence cohorts produces a null result there BY CONSTRUCTION -- the cross-tab detects only a bias that concentrates in the weak cohort, so its null result is evidence about confidence, not about correctness. Ground truth from the vendor's own page is the only test that distinguishes them, and that is what this file scores.",
+  "sample_note": "The sample is 3 scoreable rows, enriched with expected-gated products. It bounds the DIRECTION of the error, not its magnitude. Not a random sample and not a corpus-wide error rate: these are the rows most likely to be wrong, chosen for that reason. What it establishes is that the errors run one way -- gated products read as self-serve, never the reverse. What it cannot establish is how many rows in the corpus are affected.",
+  "verdict": "DIRECTION ONLY. 3 scoreable self-serve rows is below the 5 needed to state a rate, so no magnitude is claimed here. What the sample does support is the direction: the miss (33% of 3) is a gated product read as self-serve, and 4 of 4 gated calls were correct. Errors run one way -- the method over-reports reachability and never under-reports it. The sample is also enriched with expected-gated products, so it bounds the direction of the error, not its magnitude."
 }

@@ -9,11 +9,14 @@ Three rules this module follows, because a clustering report is the easiest
 place in the project to launder a weak field into a confident-looking finding:
 
 1. **Clusters keyed on `access_tier` inherit its measured error.** The hand
-   check put the false-negative rate at 57% on an adversarial sample and named
-   the mechanism. Every archetype below is keyed partly on that field, so each
-   one carries the caveat inline rather than in a footnote nobody reads. If
-   `hand_check.json` is present the measured rate is quoted from it; if it is
-   absent the caveat says the field is unverified, never that it is fine.
+   check found the field wrong in one direction on an adversarial sample, and
+   named the mechanism. Every archetype below is keyed partly on that field, so
+   each one carries the caveat inline rather than in a footnote nobody reads.
+   The rate is quoted from `hand_check.json` rather than restated here, so a
+   corrected hand check corrects this report too and no stale figure can
+   survive in a generated file. If `hand_check.json` is absent the caveat says
+   the field is unverified, never that it is fine. The sample is small and
+   enriched, so the caveat bounds direction, never magnitude.
 
 2. **Failed rows are not members of anything.** A RESEARCH FAILED row has no
    findings to cluster. It is counted and named separately so the denominators
@@ -72,19 +75,26 @@ def _tier_caveat() -> dict:
             res = json.loads(hc.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             res = {}
-        fn = (res.get("false_negative_rate") or {}).get("rate")
+        fnr = res.get("false_negative_rate") or {}
+        fn, checked, wrong = fnr.get("rate"), fnr.get("checked"), fnr.get("wrong")
+        fpr = res.get("false_positive_rate") or {}
         if fn is not None:
             return {
                 "status": "measured",
                 "false_negative_rate": fn,
+                "scoreable_rows": checked,
                 "note": (
-                    f"Every archetype here is keyed partly on access_tier, and "
-                    f"that field was measured wrong on {fn:.0%} of the "
-                    "self-serve rows hand-checked against vendor pricing pages, "
-                    "in one direction: gated products read as self-serve. The "
-                    "self-serve archetypes below are therefore overstated and "
-                    "the gated ones understated. The shapes are real; the sizes "
-                    "are not."
+                    f"Every archetype here is keyed partly on access_tier. "
+                    f"Hand-checked against vendor pricing pages, that field was "
+                    f"wrong on {wrong} of {checked} scoreable self-serve rows "
+                    f"({fn:.0%}), while {fpr.get('checked')} of "
+                    f"{fpr.get('checked')} gated calls were correct. The sample "
+                    f"is {checked} scoreable rows, enriched with expected-gated "
+                    "products: it bounds the DIRECTION of the error, not its "
+                    "magnitude. Direction is one-way -- gated products read as "
+                    "self-serve, never the reverse -- so the self-serve "
+                    "archetypes below are a ceiling and the gated ones a floor. "
+                    "The shapes are real; the sizes are not."
                 ),
                 "source": "data/hand_check.json",
             }

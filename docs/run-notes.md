@@ -321,11 +321,14 @@ routed to it and re-reads them under a real browser to settle field-level
 disagreements. That is worth doing when the disputes are the biggest open
 question about the corpus. After the hand-check they are not.
 
-The hand-check produced a directional split — 57.1% false negatives against 0%
-false positives on an adversarially selected sample — and named the mechanism:
-the extractor reads documented API as obtainable credentials, which moves
-verdicts in one direction only. That is a stronger result than Layer 3 could
-have returned, for a reason worth being precise about. Layer 3 settles
+The hand-check produced a directional result — 1 of 3 scoreable rows wrong when
+the pipeline said self-serve, against 4 of 4 correct every time it said gated —
+and named the mechanism: the extractor reads documented API as obtainable
+credentials, which moves verdicts in one direction only. Three scoreable rows,
+enriched with expected-gated products, bounds the *direction* of the error and
+not its magnitude, and nothing here claims otherwise. That is still a stronger
+result than Layer 3 could have returned, for a reason worth being precise
+about. Layer 3 settles
 *disagreements between two passes*, so its ceiling is inter-pass consistency,
 and both passes share the extractor whose bias is the actual finding. It cannot
 see a bias that both passes have. Eleven rows confirmed against a browser would
@@ -342,6 +345,34 @@ The 11-row Layer 3 queue is preserved in `corroboration_summary.json` under
 `layer3_queue`. It is a queue that was not run, which is a different artifact
 from a queue that came back clean, and nothing downstream reads it as the
 latter.
+
+---
+
+## The schema's unit is wrong
+
+`access_tier` assumes one access tier per app. BILL has Enterprise-gated AP/AR
+APIs and a freely available API platform covering Spend & Expense. Neither enum
+value is correct, because the question is malformed — access tier is a property
+of a *product*, not a company.
+
+This surfaced only from opening the pricing page by hand. No amount of prompt
+tuning finds it: the extractor answers the question it was asked, and the
+question is the defect. Both models agreed on BILL because both were forced to
+pick from a set that does not contain the right answer. Agreement between two
+readers of a malformed question is not evidence about the answer — it is
+evidence that the question constrained them both the same way, which is the
+same shape as the tier × confidence null and worth recognising as such.
+
+The implication is that for multi-product vendors the research unit must be the
+API product, not the app. That is a corpus-design change, not a prompt change,
+and it would mean BILL is two rows rather than one.
+
+No enum value was added. `schema_cannot_express` is recorded as an exclusion in
+`hand_check.json`, kept out of both error rates and reported on its own, for
+the same reason the earlier schema gap was measured rather than patched:
+changing the enum mid-project invalidates every row already collected, and a
+recorded gap is more useful than a silently widened vocabulary. The cost is
+that the corpus still contains one row that cannot be right.
 
 ---
 

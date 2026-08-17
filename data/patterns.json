@@ -16,8 +16,9 @@
   "failed_rows_note": "RESEARCH FAILED rows have no findings to cluster and are excluded from every denominator here. They are named rather than folded into a tier bucket they never earned.",
   "access_tier_caveat": {
     "status": "measured",
-    "false_negative_rate": 0.5714,
-    "note": "Every archetype here is keyed partly on access_tier, and that field was measured wrong on 57% of the self-serve rows hand-checked against vendor pricing pages, in one direction: gated products read as self-serve. The self-serve archetypes below are therefore overstated and the gated ones understated. The shapes are real; the sizes are not.",
+    "false_negative_rate": 0.3333,
+    "scoreable_rows": 3,
+    "note": "Every archetype here is keyed partly on access_tier. Hand-checked against vendor pricing pages, that field was wrong on 1 of 3 scoreable self-serve rows (33%), while 4 of 4 gated calls were correct. The sample is 3 scoreable rows, enriched with expected-gated products: it bounds the DIRECTION of the error, not its magnitude. Direction is one-way -- gated products read as self-serve, never the reverse -- so the self-serve archetypes below are a ceiling and the gated ones a floor. The shapes are real; the sizes are not.",
     "source": "data/hand_check.json"
   },
   "archetypes": [

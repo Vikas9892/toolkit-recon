@@ -623,7 +623,7 @@ def _print_hand_check(res: dict, out: Path) -> None:
         print("  excluded (research failed, no tier claim to score): "
               + ", ".join(res["excluded_research_failures"]))
 
-    print("\n  ERROR RATES  <- the headline: is ~90% self-serve real?")
+    print("\n  ERROR RATES  <- does the self-serve figure survive ground truth?")
     print(f"    false negative  {_rate(fn['rate']):>7}"
           f"  ({fn['wrong']}/{fn['checked']} called self-serve, actually gated)")
     print(f"    false positive  {_rate(fp['rate']):>7}"
@@ -644,7 +644,27 @@ def _print_hand_check(res: dict, out: Path) -> None:
         if a.get("why_it_failed"):
             print(f"      why: {a['why_it_failed']}")
 
+    gap = res.get("schema_cannot_express") or {}
+    if gap.get("count"):
+        print(f"\n  SCHEMA CANNOT EXPRESS  ({gap['count']}, excluded from both rates)")
+        for g in gap["rows"]:
+            print(f"    {g['app']:<26} pipeline said {g['agent_access_tier']}")
+            if g.get("vendor_evidence_url"):
+                print(f"      evidence: {g['vendor_evidence_url']}")
+        print(f"    {gap['note']}")
+
+    ap = res.get("agent_filled_pass_vs_human") or {}
+    if ap.get("compared"):
+        print(f"\n  AGENT-FILLED PASS vs HUMAN  "
+              f"({ap['disagreed_with_human']} of {ap['compared']} wrong)")
+        for d in ap["disagreements"]:
+            print(f"    {d['app']:<26} agent said {d['agent_pass_said']:<20}"
+                  f" human says {d['human_said']}")
+        print(f"    {ap['finding']}")
+
     proj = res["corpus_projection"]
+    if not proj.get("available") and proj.get("reason"):
+        print(f"\n  CORPUS PROJECTION: suppressed. {proj['reason']}")
     if proj.get("available"):
         print("\n  CORPUS PROJECTION (worst case, not a measurement)")
         print(f"    observed self-serve share : "

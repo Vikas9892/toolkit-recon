@@ -74,11 +74,15 @@
     }
   ],
   "filled_by": {
-    "who": "the agent, not a human",
-    "method": "each truth_access_tier was read off the vendor's own pricing page (or, where the pricing page was silent, the vendor's own API overview), not off the developer docs the pipeline had cited",
-    "caveat": "the queue was designed for a human, because a second model reading the same class of page is not independent of the first. Filled this way the check still discriminates -- it compares pricing pages against docs pages, which is the distinction the test turns on -- but it is weaker than the human check it substitutes for, and a human should re-check at least the four false negatives before the result is quoted as settled",
+    "who": "human, verified against vendor pricing pages",
+    "method": "each truth_access_tier was read off the vendor's own pricing page or API documentation by a person, not by a model",
+    "supersedes": "an earlier agent-filled pass, retained per-row in agent_pass_truth and scored under agent_filled_pass_vs_human",
     "unverified_rows": [
-      "Salesforce"
-    ]
+      "Salesforce",
+      "Apollo.io",
+      "Brex",
+      "Databricks"
+    ],
+    "unverified_note": "these rows carry an agent-filled reading only and are excluded from every rate"
   }
 }

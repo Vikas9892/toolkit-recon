@@ -291,6 +291,12 @@ def hand_check_queue(rows: list[dict], force: bool = False) -> tuple[Path, dict]
 # pipeline with a gated call it never actually made.
 _RESEARCH_FAILED_MARKS = ("research failed", "not assessed")
 
+# Not an enum member and deliberately not added as one. A row lands here when
+# the vendor has more than one API product at different tiers, so no single
+# value is correct -- the defect is in the question, not the answer. Recorded
+# and excluded from both rates rather than forced into the nearest member.
+SCHEMA_GAP = "schema_cannot_express"
+
 # Thresholds for the verdict line. Deliberately blunt: the queue is small, and
 # a rate this coarse either survives a large gap or it does not.
 _FN_SYSTEMATIC = 0.50   # at or above: the figure is an artefact of extraction
@@ -320,6 +326,8 @@ def score_hand_check(csv_path: Path, corpus_rows: list[dict] | None = None) -> d
     unchecked: list[str] = []
     bad_vocab: list[dict] = []
     research_failed: list[dict] = []
+    schema_gap: list[dict] = []
+    agent_pass: list[dict] = []
 
     fn_denom = fn_num = 0          # agent said self-serve
     fp_denom = fp_num = 0          # agent said gated
@@ -329,9 +337,40 @@ def score_hand_check(csv_path: Path, corpus_rows: list[dict] | None = None) -> d
         name = (r.get("name") or "").strip()
         agent = (r.get("agent_access_tier") or "").strip()
         truth = (r.get("truth_access_tier") or "").strip().lower()
+        source = (r.get("truth_source") or "").strip().lower()
+        prior = (r.get("agent_pass_truth") or "").strip().lower()
 
+        # Only a human reading the vendor's page establishes ground truth. An
+        # agent-filled verdict is retained for comparison and never scored.
+        if truth and source != "human":
+            unchecked.append(name)
+            continue
         if not truth:
             unchecked.append(name)
+            continue
+
+        # Where an earlier agent-filled pass also produced a verdict on a row
+        # the pipeline called self-serve, keep the comparison. Whether a second
+        # model reading the same class of page agreed with the human is itself
+        # a result, and it is the one that tests the independence caveat.
+        if prior and agent in SELF_SERVE:
+            comparable = truth in TIERS and prior in TIERS
+            agent_pass.append({
+                "app": name,
+                "agent_pass_said": prior,
+                "human_said": truth,
+                "agreed": ((prior in SELF_SERVE) == (truth in SELF_SERVE)
+                           if comparable else None),
+                "comparable": comparable,
+            })
+
+        if truth == SCHEMA_GAP:
+            schema_gap.append({
+                "app": name,
+                "agent_access_tier": agent,
+                "vendor_evidence_url": (r.get("truth_evidence_url") or "").strip(),
+                "why": (r.get("why_it_failed") or "").strip(),
+            })
             continue
         if truth not in TIERS:
             bad_vocab.append({"app": name, "value": truth})
@@ -408,11 +447,23 @@ def score_hand_check(csv_path: Path, corpus_rows: list[dict] | None = None) -> d
             "checked": fp_denom, "wrong": fp_num, "rate": fp_rate,
         },
         "same_class_mismatches": same_class_mismatch,
+        "schema_cannot_express": {
+            "count": len(schema_gap),
+            "rows": schema_gap,
+            "note": (
+                "access_tier assumes one access tier per app. These rows have "
+                "more than one API product at different tiers, so no enum "
+                "member is correct -- the question is malformed, not the "
+                "answer. Excluded from both rates. No enum member was added: "
+                "the gap is recorded, not patched."
+            ),
+        },
+        "agent_filled_pass_vs_human": _agent_pass_result(agent_pass),
         "per_app": per_app,
-        "corpus_projection": _project(fn_rate, corpus_rows),
+        "corpus_projection": _project(fn_rate, corpus_rows, fn_denom),
         "why_this_test_and_not_the_cross_tab": (
-            "Two explanations survive for a ~90% self-serve corpus: the corpus "
-            "really is mostly self-serve, or the extractor reads documented "
+            "Two explanations survive for a mostly self-serve corpus: the "
+            "corpus really is mostly self-serve, or the extractor reads documented "
             "API as obtainable credentials. The tier x confidence cross-tab "
             "cannot separate them. A bias uniform across confidence cohorts "
             "produces a null result there BY CONSTRUCTION -- the cross-tab "
@@ -422,16 +473,46 @@ def score_hand_check(csv_path: Path, corpus_rows: list[dict] | None = None) -> d
             "distinguishes them, and that is what this file scores."
         ),
         "sample_note": (
-            "This queue is not a random sample. It was deliberately enriched "
-            "with products whose access is commercially gated in practice, so "
-            "the false-negative rate here is NOT a corpus-wide error rate -- "
-            "it is the rate among the rows most likely to be wrong. That makes "
-            "the test asymmetric, and usefully so: a low rate on the hardest "
-            "cases is strong evidence the headline holds, while a high rate is "
-            "conclusive that it does not. A middling rate bounds the error "
-            "from above and settles nothing."
+            f"The sample is {fn_denom} scoreable rows, enriched with "
+            "expected-gated products. It bounds the DIRECTION of the error, "
+            "not its magnitude. Not a random sample and not a corpus-wide "
+            "error rate: these are the rows most likely to be wrong, chosen "
+            "for that reason. What it establishes is that the errors run one "
+            "way -- gated products read as self-serve, never the reverse. What "
+            "it cannot establish is how many rows in the corpus are affected."
         ),
         "verdict": _hand_check_verdict(fn_rate, fn_denom, fp_rate, fp_denom),
+    }
+
+
+def _agent_pass_result(rows: list[dict]) -> dict:
+    """Did a second model reading vendor pages match the human? Mostly not.
+
+    This is the empirical test of the independence caveat the artifact carried
+    from the start. The agent-filled pass called Gorgias and Deel misses; the
+    human found the pipeline was right on both. Two of four wrong is not a
+    verification method, and this block is the evidence for saying so.
+    """
+    if not rows:
+        return {"compared": 0, "note": "no agent-filled verdicts to compare"}
+    wrong = [r for r in rows if r["agreed"] is False]
+    return {
+        "compared": len(rows),
+        "disagreed_with_human": len(wrong),
+        "disagreements": [
+            {"app": r["app"], "agent_pass_said": r["agent_pass_said"],
+             "human_said": r["human_said"]} for r in wrong
+        ],
+        "rows": rows,
+        "finding": (
+            f"The agent-filled pass disagreed with the human on "
+            f"{len(wrong)} of {len(rows)} rows the pipeline called self-serve. "
+            "It called them misses; the vendor's pages say the pipeline was "
+            "right. This is direct evidence that a second model reading the "
+            "same class of page is not independent verification -- which is "
+            "exactly the caveat this artifact carried on its own face before "
+            "the human check existed. The caveat was correct."
+        ),
     }
 
 
@@ -460,15 +541,29 @@ def _provenance() -> dict:
     }
 
 
-def _project(fn_rate: float | None, corpus_rows: list[dict] | None) -> dict:
+def _project(fn_rate: float | None, corpus_rows: list[dict] | None,
+             fn_checked: int = 0) -> dict:
     """What the self-serve share becomes if the measured miss rate generalised.
 
     An extrapolation from an enriched sample, so it is a worst case rather than
-    an estimate, and is labelled as one.
+    an estimate, and is labelled as one. Suppressed entirely below the sample
+    size needed to state a rate: projecting a corpus figure off three rows
+    would put a number on exactly the magnitude the sample cannot support.
     """
     if fn_rate is None or not corpus_rows:
         return {"available": False,
                 "reason": "needs both a scored queue and the corpus rows"}
+    if fn_checked < _MIN_TO_CONCLUDE:
+        return {
+            "available": False,
+            "reason": (
+                f"only {fn_checked} scoreable rows, below the "
+                f"{_MIN_TO_CONCLUDE} needed to state a rate. Projecting a "
+                "corpus-wide share from this sample would assert precisely the "
+                "magnitude the sample cannot support. The direction of the "
+                "error is established; its size is not."
+            ),
+        }
     n = len(corpus_rows)
     self_serve = sum(1 for r in corpus_rows if r["access_tier"] in SELF_SERVE)
     observed = round(self_serve / n, 4) if n else None
@@ -490,12 +585,28 @@ def _project(fn_rate: float | None, corpus_rows: list[dict] | None) -> dict:
 def _hand_check_verdict(fn_rate, fn_checked, fp_rate, fp_checked) -> str:
     if fn_rate is None:
         return ("no self-serve rows have been checked against a vendor page "
-                "yet -- the ~90% self-serve figure is unverified and must not "
+                "yet -- the self-serve figure is unverified and must not "
                 "be quoted as a finding")
     if fn_checked < _MIN_TO_CONCLUDE:
-        return (f"only {fn_checked} self-serve rows checked, below the "
-                f"{_MIN_TO_CONCLUDE} needed to conclude; the figure remains "
-                "unverified rather than confirmed")
+        # Too few rows to state a rate, but not too few to state a direction:
+        # every error runs one way and the gated calls are clean. Direction is
+        # a weaker claim than magnitude and it is the one the sample supports.
+        directional = (fn_rate > 0 and not fp_rate)
+        head = (f"DIRECTION ONLY. {fn_checked} scoreable self-serve rows is "
+                f"below the {_MIN_TO_CONCLUDE} needed to state a rate, so no "
+                "magnitude is claimed here. ")
+        if directional:
+            return head + (
+                f"What the sample does support is the direction: the miss "
+                f"({fn_rate:.0%} of {fn_checked}) is a gated product read as "
+                f"self-serve, and {fp_checked} of {fp_checked} gated calls "
+                "were correct. Errors run one way -- the method over-reports "
+                "reachability and never under-reports it. The sample is also "
+                "enriched with expected-gated products, so it bounds the "
+                "direction of the error, not its magnitude.")
+        return head + ("The sample is enriched with expected-gated products "
+                       "and bounds the direction of the error, not its "
+                       "magnitude.")
 
     if fn_rate >= _FN_SYSTEMATIC:
         head = (f"SYSTEMATIC BIAS. The vendor's own pages contradict the "

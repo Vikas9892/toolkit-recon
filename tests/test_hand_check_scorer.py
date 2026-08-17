@@ -27,7 +27,8 @@ from toolkit_recon.tier_audit import (  # noqa: E402
 
 COLS = ["slug", "name", "category", "why_selected", "agent_access_tier",
         "agent_confidence", "agent_primary_blocker", "evidence_urls",
-        "truth_access_tier", "truth_evidence_url", "why_it_failed"]
+        "truth_access_tier", "truth_source", "truth_evidence_url",
+        "why_it_failed", "agent_pass_truth"]
 
 
 def _write(tmp_path: Path, rows: list[dict]) -> Path:
@@ -47,6 +48,8 @@ def _row(name: str, agent: str, truth: str = "", **kw) -> dict:
         "agent_access_tier": agent, "agent_confidence": "medium",
         "agent_primary_blocker": "", "evidence_urls": f"https://docs.{name}.com",
         "truth_access_tier": truth,
+        # Ground truth counts only when a human established it.
+        "truth_source": "human" if truth else "",
         "truth_evidence_url": f"https://{name}.com/pricing" if truth else "",
         **kw,
     }
@@ -209,6 +212,70 @@ def test_projection_is_absent_without_corpus_and_labelled_worst_case(tmp_path):
     assert "never as a measurement" in proj["caveat"]
 
 
+def test_only_a_human_verdict_counts_as_ground_truth(tmp_path):
+    """An agent-filled truth is retained but never scored.
+
+    A second model reading the same class of page is not independent of the
+    first, so counting its verdicts as ground truth would launder a model's
+    opinion into a measurement.
+    """
+    rows = _self_serve(3, "paid_plan_required")
+    rows += [_row(f"agentfilled{i}", "self_serve_free", "paid_plan_required",
+                  truth_source="") for i in range(4)]
+    res = score_hand_check(_write(tmp_path, rows))
+    assert res["false_negative_rate"]["checked"] == 3      # not 7
+    assert len(res["rows_not_yet_checked"]) == 4
+
+
+def test_schema_gap_rows_are_excluded_from_both_rates_and_named(tmp_path):
+    """Some rows have no correct answer because the question is malformed."""
+    rows = _self_serve(3, "paid_plan_required")
+    rows.append(_row("bill", "self_serve_free", "schema_cannot_express"))
+    res = score_hand_check(_write(tmp_path, rows))
+
+    assert res["false_negative_rate"]["checked"] == 3      # BILL not counted
+    assert res["schema_cannot_express"]["count"] == 1
+    assert res["schema_cannot_express"]["rows"][0]["app"] == "bill"
+    assert "question is malformed" in res["schema_cannot_express"]["note"]
+    # It must not be silently downgraded into an invalid-vocabulary complaint.
+    assert res["invalid_truth_values"] == []
+
+
+def test_agent_filled_pass_is_scored_against_the_human(tmp_path):
+    rows = [
+        _row("salesloft", "self_serve_free", "partner_gated",
+             agent_pass_truth="paid_plan_required"),
+        _row("gorgias", "self_serve_free", "self_serve_free",
+             agent_pass_truth="paid_plan_required"),
+        _row("deel", "self_serve_free", "self_serve_free",
+             agent_pass_truth="paid_plan_required"),
+        _row("bill", "self_serve_free", "schema_cannot_express",
+             agent_pass_truth="paid_plan_required"),
+    ]
+    res = score_hand_check(_write(tmp_path, rows))
+    ap = res["agent_filled_pass_vs_human"]
+
+    assert ap["compared"] == 4
+    assert ap["disagreed_with_human"] == 2
+    assert sorted(d["app"] for d in ap["disagreements"]) == ["deel", "gorgias"]
+    assert "not independent verification" in ap["finding"]
+
+
+def test_projection_is_suppressed_below_the_sample_size_for_a_rate(tmp_path):
+    """Three rows cannot support a corpus-wide magnitude, so none is offered."""
+    corpus = [{"access_tier": "self_serve_free"}] * 48 + \
+             [{"access_tier": "partner_gated"}] * 15
+    res = score_hand_check(_write(tmp_path, _self_serve(3, "partner_gated")),
+                           corpus)
+    proj = res["corpus_projection"]
+    assert proj["available"] is False
+    assert "below the" in proj["reason"]
+    assert "cannot support" in proj["reason"]
+    # Direction is still stated; only magnitude is withheld.
+    assert res["verdict"].startswith("DIRECTION ONLY")
+    assert "no magnitude is claimed" in res["verdict"]
+
+
 def test_provenance_is_reported_and_unrecorded_is_not_silent(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "data_dir", tmp_path)
     res = score_hand_check(_write(tmp_path, _self_serve(5, "self_serve_free")))
@@ -278,4 +345,7 @@ def test_output_states_why_the_cross_tab_could_not_settle_this(tmp_path):
     assert "BY CONSTRUCTION" in note
     assert "uniform across confidence cohorts" in note
     assert "obtainable credentials" in note
-    assert "not a random sample" in res["sample_note"]
+    assert "Not a random sample" in res["sample_note"]
+    # The sample bounds direction, never magnitude, and must say which.
+    assert "DIRECTION" in res["sample_note"]
+    assert "not its magnitude" in res["sample_note"]
