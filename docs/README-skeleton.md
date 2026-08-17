@@ -1,7 +1,25 @@
 # toolkit-recon
 
-<!-- Draft skeleton. Replaces the root README once pass 1 lands and the
-     headline finding can be written from data rather than guessed. -->
+> **SUPERSEDED.** Kept as a record of what was planned before the data came
+> back. The canonical document is [`../README.md`](../README.md); read that
+> instead. Nothing here is maintained.
+>
+> The skeleton's plan was to replace the root README once pass 1 landed and §2
+> could be written from data. Pass 1 landed at 63 of 100 rows and §2 is now
+> written — but only half of it, and the half that survived is not the half this
+> file expected:
+>
+> * The **buildable/gated split** exists, and hand-checking turned it into a
+>   ceiling rather than a count. That is the headline.
+> * The **audited precision gap between `high` and `medium/low`** does not
+>   exist and was never measured. The audit queue was generated and never
+>   filled. This file assumed that number would be available; planning for it
+>   did not make it so.
+>
+> Left in place rather than deleted, because the gap between the two is the
+> useful part: §5 below describes an accuracy measurement this project does not
+> have, and reading it next to the real README shows exactly which claim got
+> dropped and why.
 
 ## 1. What this is
 

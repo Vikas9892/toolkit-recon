@@ -8,30 +8,97 @@ Built for an AI Product Ops take-home at Composio. The brief's constraint was
 *accuracy matters more than coverage*, so the design decisions below all trade
 throughput and breadth for auditability.
 
+**Deliverable:** [toolkit-recon.vercel.app](https://toolkit-recon.vercel.app) —
+one page, generated from `data/` at build time.
+
+---
+
+## Headline finding
+
+**63 of 100 apps profiled.** The run ended on `DailyQuotaExhausted` at
+196,846/200,000 tokens. Every figure in this repo is over 63, not 100.
+
+Of those 63, **48 report as self-serve. Hand-checking says that is a ceiling,
+not a count.**
+
+| | |
+|---|---|
+| Pipeline said **gated** | correct **4 of 4** times |
+| Pipeline said **self-serve** | wrong **1 of 3** scoreable rows |
+
+The miss — Salesloft — shows the mechanism: developer documentation describing
+*how to authenticate* was read as evidence that credentials are *obtainable*,
+for a vendor that publishes no pricing at all. The errors run one way. The
+method over-reports reachability and never under-reports it.
+
+The only apps it reliably identifies as unreachable are the 9 with
+`no_public_api` — which are also the only 9 with narrow API surfaces. **It
+detects the absence of an API. It does not detect the presence of a paywall.**
+
+A fourth app broke the schema rather than the pipeline. BILL's access tier
+depends on which product you mean: Enterprise for AP/AR, free for the API
+platform. Neither enum value is correct, because **access tier is a property of
+a product, not a company.** Recorded as `schema_cannot_express`; no enum member
+was added.
+
+Three things this finding is not:
+
+* **Not a magnitude.** The sample is 3 scoreable rows, deliberately enriched
+  with expected-gated products. It bounds the *direction* of the error, not its
+  size.
+* **Not an accuracy figure.** No accuracy number exists in this project. The
+  19-row audit queue was generated and never filled, and a test asserts no
+  output file carries a populated `accuracy` key. What the artifacts carry is
+  cross-model agreement, which is a different quantity — see
+  [Convergence is not accuracy](#convergence-is-not-accuracy).
+* **Not something the cross-tab could have found.** The tier × confidence
+  cross-tab returned a null (89% vs 91%). A bias uniform across confidence
+  cohorts produces a null there *by construction* — it can only detect a bias
+  that concentrates in the weak cohort.
+
+**Implication for toolkit prioritisation:** `access_tier` needs a second
+evidence source, and for multi-product vendors it needs a different research
+unit — the API product, not the app.
+
+One further result worth stating, because it cost something to learn: before
+the human check, an agent-filled pass read the same vendor pages and got **2 of
+4 wrong**, calling Gorgias and Deel misses when the pipeline was right on both.
+That is direct evidence a second model reading the same class of page is not
+independent verification. The artifact carried that caveat on its own face
+before there was any way to test it, and the caveat was correct.
+
 ---
 
 ## What it produces
 
 | Path | Contents |
 |---|---|
-| `data/pass1.json` | 100 rows, one per app, validated against `AppResearch` |
+| `data/pass1.json` | 63 rows, one per app, validated against `AppResearch` |
 | `data/raw/{slug}/` | Every fetched page as text, plus a `manifest.json` |
 | `logs/trace.jsonl` | One execution trace per app: queries, URLs, tokens, wall time, confidence |
 | `data/checkpoints/` | Rewritten after every app, so a crash never costs the run |
 
 Verification artifacts:
 
-| Path | Contents |
-|---|---|
-| `data/validation_report.json` | Layer 1: per-rule counts, affected apps, re-run queues |
-| `data/pass1.validated.json` | Pass 1 with Layer 1 corrections applied |
-| `data/pass2.json` | Layer 2: re-checked rows, corroborated or disputed |
-| `data/disagreements.json` | Every field where the two passes disagreed |
-| `data/pass3.json` | Layer 3: browser-verified resolutions |
-| `evidence/screenshots/{slug}.png` | What the browser actually saw |
-| `data/audit_queue.csv` | Phase 3: 20 stratified apps for a human to adjudicate |
-| `data/human_audit.json` | Phase 3: precision by field and by confidence |
-| `data/accuracy_progression.json` | Convergence (measured) + accuracy (audited) |
+| Path | Contents | State |
+|---|---|---|
+| `data/validation_report.json` | Layer 1: per-rule counts, affected apps, re-run queues | 2 violations / 63 rows |
+| `data/pass1.validated.json` | Pass 1 with Layer 1 corrections applied | 63 rows |
+| `data/pass2.json` | Layer 2: re-checked rows, corroborated or disputed | 4 usable readings |
+| `data/corroboration_summary.json` | Layer 2 coverage, and **every unverified row by name** | 59 unverified |
+| `data/disagreements.json` | Every field where the two passes disagreed | 25 disagreements |
+| `data/pass3.json` | Layer 3: browser-verified resolutions | **not produced — skipped, see below** |
+| `data/hand_check_queue.csv` | Access tier vs the vendor's own pricing page | 8 human-verified |
+| `data/hand_check.json` | Error rates by direction, per-app verdicts, schema gaps | the headline finding |
+| `data/patterns.json` | Phase 4: archetypes, blocker families, auth, category, MCP | — |
+| `data/audit_queue.csv` | Phase 3: stratified apps for a human to adjudicate | **generated, never filled** |
+| `data/human_audit.json` | Phase 3: precision by field and by confidence | **does not exist** |
+| `data/accuracy_progression.json` | Convergence (measured) + accuracy (audited) | accuracy is `null` |
+| `site/index.html` | The deliverable, generated from all of the above | [live](https://toolkit-recon.vercel.app) |
+
+The blanks are deliberate. A file that does not exist because the work was not
+done is a different artifact from one full of zeroes, and nothing downstream
+reads the first as the second.
 
 ---
 
@@ -46,7 +113,7 @@ cp .env.example .env      # add COMPOSIO_API_KEY and GROQ_API_KEY
 python -m toolkit_recon --pass-number 1          # all 100 apps
 python -m toolkit_recon --only slack,stripe      # a couple, for a smoke test
 python -m toolkit_recon --resume                 # continue after an interrupt
-pytest -q                                        # 34 unit tests, no network
+pytest -q                                        # 142 unit tests, no network
 ```
 
 Then read the results:
@@ -54,7 +121,29 @@ Then read the results:
 ```bash
 python -m toolkit_recon.report                   # distributions + process metrics
 python -m toolkit_recon.report --triage          # the human review queue
+python -m toolkit_recon.report --findings        # cross-tabs, blockers, deadlines
+python -m toolkit_recon.patterns                 # PHASE 4  pattern clustering
+python -m toolkit_recon.site                     # build site/index.html
 ```
+
+### Is the access tier real?
+
+The one check that can separate *"the corpus really is mostly self-serve"* from
+*"the extractor reads documented API as obtainable credentials"*. Nothing else
+in the repo can — see the [headline finding](#headline-finding).
+
+```bash
+# Stage the rows a human should check against vendor pricing pages.
+python -m toolkit_recon.report --hand-check
+
+# ... a person fills truth_access_tier / truth_evidence_url / why_it_failed,
+#     and sets truth_source=human. Only human rows are ever scored.
+
+python -m toolkit_recon.report --hand-check-score   # -> data/hand_check.json
+```
+
+`--hand-check` refuses to overwrite a queue whose truth column is already
+filled; regenerating is cheap and the fill is not. `--force` overrides it.
 
 ### The three verification layers
 
@@ -71,13 +160,32 @@ python -m toolkit_recon --pass-number 2 --recheck-from 1 \
     --recheck-file pass1.validated.json --include-flagged --out pass2.raw.json
 python -m toolkit_recon.corroborate
 
-# Layer 3 — browser verification, disputed fields only
+# Layer 3 — browser verification, disputed fields only  (NOT RUN, see below)
 python -m playwright install chromium
 python -m toolkit_recon.browser_verify
 
 # The progression
 python -m toolkit_recon.progression
 ```
+
+**What the layers actually reached on this run:**
+
+| Layer | Coverage | Result |
+|---|---|---|
+| 1 — structural | 63/63 | 2 violations. Braze `has_mcp` **retracted** (evidence on `apis.io`, not a vendor domain); Telegram `api_style` contradiction flagged |
+| 2 — second pass | **4/63 (6%)** | 11 attempted, 7 failed, 52 never reached. 0 promotions, 25 field disagreements. All 59 unverified rows named in `corroboration_summary.json` |
+| 3 — browser | **skipped** | Deliberate. Recorded in [`docs/run-notes.md`](docs/run-notes.md) with the reason |
+
+Layer 3 settles disagreements *between two passes*, so its ceiling is inter-pass
+consistency — and both passes share the extractor whose bias turned out to be
+the actual finding. It cannot see a bias both passes have. The hand check
+answered the bigger question directly. The 11-row queue is preserved in
+`corroboration_summary.json` as a queue that was **not run**, which is a
+different artifact from one that came back clean.
+
+The honest footnote: the token budget was exhausted by that point anyway. The
+decision is what I would make with budget in hand, but I did not have to make it
+with budget in hand, and those are different claims.
 
 **Layer 1 — structural validation** (`validate.py`). Eight deterministic rules
 over the row, the trace, and the archived evidence. Actions can `force_low` or
@@ -136,16 +244,28 @@ only by `data/human_audit.json`. A test asserts no pass block carries an
 ### Phase 3 — the human audit
 
 ```bash
-python -m toolkit_recon.audit              # -> data/audit_queue.csv (20 apps)
+python -m toolkit_recon.audit              # -> data/audit_queue.csv
 #   a human reads the vendor docs and fills the verdict_* columns
 python -m toolkit_recon.report --audit     # -> data/human_audit.json
 python -m toolkit_recon.progression        # folds it into the accuracy block
 ```
 
-**The sample** (`audit.py`) is stratified, seeded, and reproducible: exactly 20
-apps, 10 high-confidence and 10 medium/low, spread across categories with a
-per-category cap derived from how many categories exist. It runs on partial
-data, so the queue can be built while pass 1 is still going.
+> **This queue was generated and never filled.** That is why no accuracy figure
+> appears anywhere in this repo. The steps below describe what would happen if
+> it were.
+
+**The sample** (`audit.py`) is stratified, seeded, and reproducible. Both the
+size and the strata are derived from the corpus, never hardcoded: 30% of N,
+floored at 5 per stratum so the high-vs-weak precision comparison is possible at
+all, capped at 25 because past that a human stops adjudicating carefully. At 63
+rows that is **19 apps, 9 high-confidence and 10 medium/low**, spread across
+categories with a per-category cap derived from how many categories exist.
+
+A fixed 20 would have been a different sample against 63 rows than against 100 —
+silently a larger share of a smaller corpus while still reading as "20 rows".
+The derivation and whether it was overridden are recorded in
+`audit_sample_meta.json`. It runs on partial data, so the queue can be built
+while pass 1 is still going.
 
 The 50/50 split is the whole point. Auditing only the rows the pipeline already
 doubts would confirm what we know and hide what we don't — **systematic
@@ -367,19 +487,60 @@ src/toolkit_recon/
   pipeline.py    orchestration, per-app isolation, per-pass query sets
   cli.py         entry point and run summary
   report.py      post-run analysis, triage queue, pass-to-pass delta
+  coverage.py    category-balanced queue ordering when budget is short
   validate.py       LAYER 1  structural rules over row + trace + evidence
   corroborate.py    LAYER 2  inter-pass agreement, disputes, promotion
   browser_verify.py LAYER 3  Playwright + grounded-quote verification
+  tier_audit.py     is access_tier real? cross-tab, pricing evidence,
+                    hand-check queue + scorer  <- the headline finding
   audit.py          PHASE 3  stratified sampler -> audit_queue.csv
+  patterns.py       PHASE 4  archetypes, blocker families, MCP cluster
   progression.py    convergence (measured) vs accuracy (audited)
-tests/           86 tests, no network required
+  site.py           builds site/index.html from data/, nothing hand-typed
+tests/           142 tests, no network required
+site/            the built deliverable + the raw JSON behind every figure
 ```
 
 ---
 
 ## Known limits
 
-Stated plainly, because a reviewer will find them anyway:
+Stated plainly, because a reviewer will find them anyway.
+
+**What this run hit, not what it might hit:**
+
+* **63 of 100 apps.** `DailyQuotaExhausted` at 196,846/200,000 tokens. Every
+  figure in this repo is over 63. 9 of the 63 are `RESEARCH FAILED` rows carried
+  in the corpus rather than dropped — a missing row and a failed row are
+  different facts.
+* **`access_tier` over-reports reachability.** Measured directionally against
+  vendor pricing pages. It is a ceiling on self-serve, not a count, and it needs
+  a second evidence source before it drives any prioritisation.
+* **`access_tier` has the wrong unit for multi-product vendors.** BILL has
+  Enterprise-gated AP/AR APIs and a free API platform; no enum value is correct.
+  The research unit should be the API product, not the app. Recorded, not
+  patched — changing the enum mid-project invalidates every row already
+  collected.
+* **No accuracy figure exists.** The 19-row audit queue was generated and never
+  filled. Convergence is not accuracy, and a test enforces that no output file
+  claims otherwise.
+* **Layer 2 reached 6%.** Layer 3 was skipped. Both are stated above with which
+  rows went unverified.
+* **The 18% pricing-evidence figure is a lower bound**, and over the final
+  corpus it is 17% (8 of 48 self-serve rows whose evidence never mentions
+  pricing). Keyword presence is not the page stating a tier, so a nav-bar
+  "Pricing" link still counts as evidence. The true figure is higher.
+* **Deadline instrumentation disagrees with itself.** All 5 deadline hits were
+  in stage `extract`. Pass 1's two fired at 600.01s exactly; pass 2's three
+  recorded 1271.99s, 1400.13s and 1271.86s against the same 600s bound —
+  2.1–2.3×. Undiagnosed, and stated rather than buried.
+* **Design 2, E-signature 1, Scheduling 1.** Too thin for a per-category claim.
+  A corpus-design weakness, not a scheduling one.
+* **Amazon SP-API, PitchBook and Salesforce Commerce Cloud are not in the
+  corpus**, so the hardest access-tier cases went untested. Recorded in
+  `audit_sample_meta.json` and `hand_check_meta.json` rather than substituted.
+
+**Method limits that would apply on a complete run too:**
 
 * **Three documents per app.** Enough to settle auth and access tier; not
   enough to characterise a large API surface, so `api_breadth` is the softest
@@ -391,8 +552,11 @@ Stated plainly, because a reviewer will find them anyway:
   would be a stronger conflict signal than one model's `signal_sources_conflict`.
 * **The delta is a churn measure, not a correctness measure.** `--delta` shows
   which claims moved between passes, which is a good proxy for instability but
-  is not ground truth. Only a hand-labelled sample would give real accuracy,
-  and that is the obvious next step.
+  is not ground truth. Only a hand-labelled sample gives real accuracy — the
+  hand check is that, for one field, at three rows.
+* **A second model is not a second opinion.** An agent-filled pass over the
+  same vendor pages got 2 of 4 wrong against human verification. Cross-model
+  agreement is worth reporting and is not verification.
 * The 8,000 TPM quota, not the network, sets the floor on run time.
 
 ---
@@ -408,6 +572,7 @@ All optional; defaults are sized for the tier this was developed against.
 | `GROQ_API_KEY` / `LLM_API_KEY` | — | Extraction model credential |
 | `LLM_BASE_URL` | Groq | Any OpenAI-compatible endpoint |
 | `LLM_MODEL` | `openai/gpt-oss-120b` | Must support strict JSON-schema output |
+| `LLM_MODEL` (as run) | `openai/gpt-oss-20b` | The corpus was built on `20b` after `120b`'s daily budget was spent. Rows carry `extracted_by` and traces carry `llm_model`, so a split cohort would be visible if one occurred. It did not — the corpus is uniform |
 | `LLM_TOKENS_PER_MINUTE` | `8000` | Raise on a larger tier for a faster run |
 | `LLM_CONCURRENCY` | `2` | In-flight extraction calls |
 | `TOOLKIT_RECON_CONCURRENCY` | `8` | Global app-level concurrency |
