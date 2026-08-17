@@ -18,8 +18,21 @@ the number does. Three checks here, none of which need an LLM:
 3. `hand_check_queue` — stage the rows a human should verify against vendor
    pricing and partner pages, since only a human can settle it.
 
+4. `score_hand_check` — read that queue back once a human has filled it, and
+   state whether the self-serve figure survived.
+
 The schema gap in (2) is deliberately *measured*, not fixed. Adding an enum
 member mid-run would invalidate every row already collected.
+
+(4) is the only check here that can separate the two live explanations for a
+~90% self-serve corpus: that the corpus really is mostly self-serve, or that
+the extractor reads *documented API* as *obtainable credentials*. (1) cannot,
+and not because it was measured badly — a bias that is uniform across
+confidence cohorts produces a null result in a tier x confidence cross-tab by
+construction. The cross-tab can only detect a bias that *concentrates* in the
+weak cohort. Ground truth is the only thing that distinguishes them, which is
+why the queue exists and why nothing downstream should quote the headline
+until it is filled.
 """
 
 from __future__ import annotations
@@ -176,8 +189,29 @@ def pricing_evidence(rows: list[dict]) -> dict:
     }
 
 
-def hand_check_queue(rows: list[dict]) -> tuple[Path, dict]:
-    """CSV of rows a human should verify against vendor pricing/partner pages."""
+class HandCheckAlreadyFilled(RuntimeError):
+    """Raised rather than overwrite truth a human has already established."""
+
+
+def _filled_truth_count(path: Path) -> int:
+    if not path.exists():
+        return 0
+    try:
+        with path.open(encoding="utf-8-sig", newline="") as fh:
+            return sum(1 for r in csv.DictReader(fh)
+                       if (r.get("truth_access_tier") or "").strip())
+    except (OSError, csv.Error):
+        return 0
+
+
+def hand_check_queue(rows: list[dict], force: bool = False) -> tuple[Path, dict]:
+    """CSV of rows a human should verify against vendor pricing/partner pages.
+
+    Refuses to overwrite a queue whose truth column has already been filled.
+    Regenerating is cheap and the fill is not: it is the one artefact here that
+    cost someone an hour of reading vendor pricing pages, and it cannot be
+    reconstructed from anything else in the repo.
+    """
     by_name = {a.name: a.slug for a in APPS}
     present = {r["name"] for r in rows}
 
@@ -197,9 +231,19 @@ def hand_check_queue(rows: list[dict]) -> tuple[Path, dict]:
             ordered.append((reason, r))
 
     path = settings.data_dir / "hand_check_queue.csv"
+    filled = _filled_truth_count(path)
+    if filled and not force:
+        raise HandCheckAlreadyFilled(
+            f"{path} already has {filled} verified row(s) in truth_access_tier. "
+            "Regenerating would discard them and they cannot be rebuilt from "
+            "anything else in the repo.\n"
+            "  - to score what is there:  --hand-check-score\n"
+            "  - to rebuild anyway:       --hand-check --force "
+            "(copy the file somewhere first)"
+        )
     cols = ["slug", "name", "category", "why_selected", "agent_access_tier",
             "agent_confidence", "agent_primary_blocker", "evidence_urls",
-            "truth_access_tier", "why_it_failed"]
+            "truth_access_tier", "truth_evidence_url", "why_it_failed"]
     with path.open("w", encoding="utf-8-sig", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=cols)
         w.writeheader()
@@ -212,7 +256,8 @@ def hand_check_queue(rows: list[dict]) -> tuple[Path, dict]:
                 "agent_confidence": r["confidence"],
                 "agent_primary_blocker": r.get("primary_blocker") or "",
                 "evidence_urls": " | ".join(r.get("evidence_urls") or []),
-                "truth_access_tier": "", "why_it_failed": "",
+                "truth_access_tier": "", "truth_evidence_url": "",
+                "why_it_failed": "",
             })
 
     meta = {
@@ -234,3 +279,250 @@ def hand_check_queue(rows: list[dict]) -> tuple[Path, dict]:
     (settings.data_dir / "hand_check_meta.json").write_text(
         json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     return path, meta
+
+
+# ---------------------------------------------------------------------------
+# Scoring the filled queue
+# ---------------------------------------------------------------------------
+
+# A row whose research failed never produced a tier verdict to be right or
+# wrong about. `no_public_api` on such a row is the absence of a reading, not
+# a claim of one, and folding it into the false-positive rate would credit the
+# pipeline with a gated call it never actually made.
+_RESEARCH_FAILED_MARKS = ("research failed", "not assessed")
+
+# Thresholds for the verdict line. Deliberately blunt: the queue is small, and
+# a rate this coarse either survives a large gap or it does not.
+_FN_SYSTEMATIC = 0.50   # at or above: the figure is an artefact of extraction
+_FN_INFLATED = 0.25     # at or above: real signal, but the number is overstated
+_FN_SURVIVES = 0.15     # at or below: the corpus really is mostly self-serve
+_MIN_TO_CONCLUDE = 5    # self-serve rows that must be checked to say anything
+
+
+def _is_research_failure(row: dict) -> bool:
+    blocker = (row.get("agent_primary_blocker") or "").lower()
+    evidence = (row.get("evidence_urls") or "").strip().lower()
+    return (any(m in blocker for m in _RESEARCH_FAILED_MARKS)
+            or evidence.startswith("unresolved://"))
+
+
+def score_hand_check(csv_path: Path, corpus_rows: list[dict] | None = None) -> dict:
+    """Read the completed hand-check CSV and say whether ~90% self-serve holds.
+
+    `truth_access_tier` is the human's reading of the vendor's own pricing or
+    partner page. Everything here is counted against that column and nothing
+    else; a blank truth is an unchecked row, never an agreement.
+    """
+    with csv_path.open(encoding="utf-8-sig", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+
+    per_app: list[dict] = []
+    unchecked: list[str] = []
+    bad_vocab: list[dict] = []
+    research_failed: list[dict] = []
+
+    fn_denom = fn_num = 0          # agent said self-serve
+    fp_denom = fp_num = 0          # agent said gated
+    same_class_mismatch = 0
+
+    for r in rows:
+        name = (r.get("name") or "").strip()
+        agent = (r.get("agent_access_tier") or "").strip()
+        truth = (r.get("truth_access_tier") or "").strip().lower()
+
+        if not truth:
+            unchecked.append(name)
+            continue
+        if truth not in TIERS:
+            bad_vocab.append({"app": name, "value": truth})
+            continue
+
+        agent_self = agent in SELF_SERVE
+        truth_self = truth in SELF_SERVE
+
+        if agent == truth:
+            outcome = "correct"
+        elif agent_self and not truth_self:
+            outcome = "false_negative"      # missed a gate that is really there
+        elif not agent_self and truth_self:
+            outcome = "false_positive"      # invented a gate
+        else:
+            outcome = "same_class_mismatch"  # wrong member, right side of the line
+
+        entry = {
+            "app": name,
+            "slug": (r.get("slug") or "").strip(),
+            "why_selected": (r.get("why_selected") or "").strip(),
+            "agent_access_tier": agent,
+            "agent_confidence": (r.get("agent_confidence") or "").strip(),
+            "truth_access_tier": truth,
+            "outcome": outcome,
+            "vendor_evidence_url": (r.get("truth_evidence_url") or "").strip(),
+            "why_it_failed": (r.get("why_it_failed") or "").strip(),
+        }
+
+        if _is_research_failure(r):
+            # Recorded in full, but kept out of both rates.
+            entry["excluded_from_rates"] = (
+                "research failed for this app, so the pipeline never made a "
+                "tier claim that could be scored")
+            research_failed.append(entry)
+            per_app.append(entry)
+            continue
+
+        if not entry["vendor_evidence_url"]:
+            entry["evidence_note"] = (
+                "no vendor URL recorded; the verdict is asserted, not cited")
+
+        if agent_self:
+            fn_denom += 1
+            fn_num += outcome == "false_negative"
+        else:
+            fp_denom += 1
+            fp_num += outcome == "false_positive"
+        same_class_mismatch += outcome == "same_class_mismatch"
+        per_app.append(entry)
+
+    fn_rate = round(fn_num / fn_denom, 4) if fn_denom else None
+    fp_rate = round(fp_num / fp_denom, 4) if fp_denom else None
+
+    return {
+        "source_csv": str(csv_path),
+        "filled_by": _provenance(),
+        "rows_in_queue": len(rows),
+        "rows_scored": len(per_app) - len(research_failed),
+        "rows_not_yet_checked": unchecked,
+        "invalid_truth_values": bad_vocab,
+        "truth_vocabulary": TIERS,
+        "excluded_research_failures": [e["app"] for e in research_failed],
+        "false_negative_rate": {
+            "definition": (
+                "of the queued rows the pipeline called self-serve, the share "
+                "the vendor's own page shows to be gated"),
+            "checked": fn_denom, "wrong": fn_num, "rate": fn_rate,
+        },
+        "false_positive_rate": {
+            "definition": (
+                "of the queued rows the pipeline called gated, the share the "
+                "vendor's own page shows to be self-serve"),
+            "checked": fp_denom, "wrong": fp_num, "rate": fp_rate,
+        },
+        "same_class_mismatches": same_class_mismatch,
+        "per_app": per_app,
+        "corpus_projection": _project(fn_rate, corpus_rows),
+        "why_this_test_and_not_the_cross_tab": (
+            "Two explanations survive for a ~90% self-serve corpus: the corpus "
+            "really is mostly self-serve, or the extractor reads documented "
+            "API as obtainable credentials. The tier x confidence cross-tab "
+            "cannot separate them. A bias uniform across confidence cohorts "
+            "produces a null result there BY CONSTRUCTION -- the cross-tab "
+            "detects only a bias that concentrates in the weak cohort, so its "
+            "null result is evidence about confidence, not about correctness. "
+            "Ground truth from the vendor's own page is the only test that "
+            "distinguishes them, and that is what this file scores."
+        ),
+        "sample_note": (
+            "This queue is not a random sample. It was deliberately enriched "
+            "with products whose access is commercially gated in practice, so "
+            "the false-negative rate here is NOT a corpus-wide error rate -- "
+            "it is the rate among the rows most likely to be wrong. That makes "
+            "the test asymmetric, and usefully so: a low rate on the hardest "
+            "cases is strong evidence the headline holds, while a high rate is "
+            "conclusive that it does not. A middling rate bounds the error "
+            "from above and settles nothing."
+        ),
+        "verdict": _hand_check_verdict(fn_rate, fn_denom, fp_rate, fp_denom),
+    }
+
+
+def _provenance() -> dict:
+    """Who filled the truth column, and how much that verdict is therefore worth.
+
+    The queue was built to be filled by a human, because a second model reading
+    the same kind of page is not independent of the first. When it is filled by
+    the agent instead, the result is still evidence -- it is read off vendor
+    pricing pages rather than off developer docs, which is the whole difference
+    the test turns on -- but it is weaker evidence, and the file has to say so
+    rather than let the reader assume otherwise.
+    """
+    meta_path = settings.data_dir / "hand_check_meta.json"
+    if meta_path.exists():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            meta = {}
+        if isinstance(meta.get("filled_by"), dict):
+            return meta["filled_by"]
+    return {
+        "who": "unrecorded",
+        "caveat": ("hand_check_meta.json does not record who filled the truth "
+                   "column, so the independence of this check is unknown"),
+    }
+
+
+def _project(fn_rate: float | None, corpus_rows: list[dict] | None) -> dict:
+    """What the self-serve share becomes if the measured miss rate generalised.
+
+    An extrapolation from an enriched sample, so it is a worst case rather than
+    an estimate, and is labelled as one.
+    """
+    if fn_rate is None or not corpus_rows:
+        return {"available": False,
+                "reason": "needs both a scored queue and the corpus rows"}
+    n = len(corpus_rows)
+    self_serve = sum(1 for r in corpus_rows if r["access_tier"] in SELF_SERVE)
+    observed = round(self_serve / n, 4) if n else None
+    corrected = round((self_serve * (1 - fn_rate)) / n, 4) if n else None
+    return {
+        "available": True,
+        "corpus_rows": n,
+        "observed_self_serve_share": observed,
+        "worst_case_self_serve_share": corrected,
+        "caveat": (
+            "Applies the hand-check miss rate to every self-serve row in the "
+            "corpus. The queue over-samples hard cases, so the true share sits "
+            "between the worst case and the observed figure, not at the worst "
+            "case. Quote it as a floor, never as a measurement."
+        ),
+    }
+
+
+def _hand_check_verdict(fn_rate, fn_checked, fp_rate, fp_checked) -> str:
+    if fn_rate is None:
+        return ("no self-serve rows have been checked against a vendor page "
+                "yet -- the ~90% self-serve figure is unverified and must not "
+                "be quoted as a finding")
+    if fn_checked < _MIN_TO_CONCLUDE:
+        return (f"only {fn_checked} self-serve rows checked, below the "
+                f"{_MIN_TO_CONCLUDE} needed to conclude; the figure remains "
+                "unverified rather than confirmed")
+
+    if fn_rate >= _FN_SYSTEMATIC:
+        head = (f"SYSTEMATIC BIAS. The vendor's own pages contradict the "
+                f"pipeline on {fn_rate:.0%} of the self-serve rows checked. "
+                "The ~90% self-serve figure does not survive; it is an "
+                "artefact of the extractor reading documented API as "
+                "obtainable credentials, and it should be withdrawn as a "
+                "finding rather than caveated")
+    elif fn_rate >= _FN_INFLATED:
+        head = (f"PARTIALLY REAL. {fn_rate:.0%} of checked self-serve rows are "
+                "gated on the vendor's page. The corpus does skew self-serve, "
+                "but the headline number is inflated by extraction and should "
+                "be reported as a range with the miss rate attached, never as "
+                "~90%")
+    elif fn_rate <= _FN_SURVIVES:
+        head = (f"SURVIVES. Only {fn_rate:.0%} of checked self-serve rows are "
+                "gated on the vendor's page, and the queue was enriched with "
+                "the hardest cases, so the true rate is no higher. The ~90% "
+                "self-serve figure reads as a property of the corpus rather "
+                "than of the extractor")
+    else:
+        head = (f"UNRESOLVED. A {fn_rate:.0%} miss rate is too high to call the "
+                "figure clean and too low to call it an artefact; it bounds "
+                "the error from above without settling the question")
+
+    if fp_rate:
+        head += (f". Separately, {fp_rate:.0%} of the {fp_checked} gated rows "
+                 "are self-serve in fact, so the gating verdicts are not "
+                 "clean either")
+    return head

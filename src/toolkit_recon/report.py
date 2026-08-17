@@ -600,6 +600,67 @@ def _print_audit(res: dict, out: Path) -> None:
     print("=" * 70)
 
 
+def _print_hand_check(res: dict, out: Path) -> None:
+    fn, fp = res["false_negative_rate"], res["false_positive_rate"]
+    print("=" * 70)
+    print("HAND CHECK - access_tier against the vendor's own page")
+    print("=" * 70)
+    print(f"  rows in queue      : {res['rows_in_queue']}")
+    print(f"  rows scored        : {res['rows_scored']}")
+    prov = res.get("filled_by") or {}
+    print(f"  truth filled by    : {prov.get('who', 'unrecorded')}")
+    if prov.get("caveat"):
+        print(f"    ! {prov['caveat']}")
+    if res["rows_not_yet_checked"]:
+        n = len(res["rows_not_yet_checked"])
+        print(f"  ! not yet checked  : {n} "
+              f"({', '.join(res['rows_not_yet_checked'][:6])}"
+              + (" ..." if n > 6 else "") + ")")
+    if res["invalid_truth_values"]:
+        print(f"  ! invalid truth    : {len(res['invalid_truth_values'])} "
+              f"(must be one of {', '.join(res['truth_vocabulary'])})")
+    if res["excluded_research_failures"]:
+        print("  excluded (research failed, no tier claim to score): "
+              + ", ".join(res["excluded_research_failures"]))
+
+    print("\n  ERROR RATES  <- the headline: is ~90% self-serve real?")
+    print(f"    false negative  {_rate(fn['rate']):>7}"
+          f"  ({fn['wrong']}/{fn['checked']} called self-serve, actually gated)")
+    print(f"    false positive  {_rate(fp['rate']):>7}"
+          f"  ({fp['wrong']}/{fp['checked']} called gated, actually self-serve)")
+    if res["same_class_mismatches"]:
+        print(f"    wrong tier but right side of the line: "
+              f"{res['same_class_mismatches']}")
+
+    print("\n  PER-APP VERDICTS")
+    for a in res["per_app"]:
+        mark = " " if a["outcome"] == "correct" else "!"
+        print(f"   {mark}{a['app']:<26} {a['agent_access_tier']:<18}"
+              f" -> {a['truth_access_tier']:<18} {a['outcome']}")
+        if a.get("vendor_evidence_url"):
+            print(f"      evidence: {a['vendor_evidence_url']}")
+        elif a.get("evidence_note"):
+            print(f"      ! {a['evidence_note']}")
+        if a.get("why_it_failed"):
+            print(f"      why: {a['why_it_failed']}")
+
+    proj = res["corpus_projection"]
+    if proj.get("available"):
+        print("\n  CORPUS PROJECTION (worst case, not a measurement)")
+        print(f"    observed self-serve share : "
+              f"{proj['observed_self_serve_share']:.0%}"
+              f"  over {proj['corpus_rows']} rows")
+        print(f"    worst case if rate held   : "
+              f"{proj['worst_case_self_serve_share']:.0%}")
+        print(f"    {proj['caveat']}")
+
+    print(f"\n  -> {res['verdict']}")
+    print(f"\n  {res['why_this_test_and_not_the_cross_tab']}")
+    print(f"\n  {res['sample_note']}")
+    print(f"\n  wrote {out}")
+    print("=" * 70)
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="toolkit-recon-report")
     p.add_argument("--pass-number", type=int, default=1)
@@ -610,6 +671,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--hand-check", action="store_true",
                    help="write data/hand_check_queue.csv for manual tier "
                         "verification against vendor pricing pages")
+    p.add_argument("--force", action="store_true",
+                   help="with --hand-check, rebuild the queue even though its "
+                        "truth column has already been filled (discards it)")
+    p.add_argument("--hand-check-score", nargs="?",
+                   const="hand_check_queue.csv", default=None, metavar="CSV",
+                   help="score the completed hand-check CSV against vendor "
+                        "pages -> data/hand_check.json")
     p.add_argument("--delta", nargs=2, type=int, metavar=("A", "B"),
                    help="compare two passes, e.g. --delta 1 2")
     p.add_argument("--audit", nargs="?", const="audit_queue.csv", default=None,
@@ -627,9 +695,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.hand_check:
-        from .tier_audit import hand_check_queue
+        from .tier_audit import HandCheckAlreadyFilled, hand_check_queue
         rows, _ = _load(args.pass_number)
-        path, meta = hand_check_queue(rows)
+        try:
+            path, meta = hand_check_queue(rows, force=args.force)
+        except HandCheckAlreadyFilled as e:
+            raise SystemExit(str(e)) from e
         print(f"wrote {path}  ({meta['queue_size']} rows)")
         if meta["requested_but_not_in_corpus"]:
             print("\n  ! requested but NOT IN CORPUS, so not queued:")
@@ -637,6 +708,28 @@ def main(argv: list[str] | None = None) -> int:
             print("    They were not silently replaced; see hand_check_meta.json.")
         for r in meta["rows"]:
             print(f"    {r['name']:<28} {r['why']}")
+        return 0
+
+    if args.hand_check_score:
+        from .tier_audit import score_hand_check
+        csv_path = Path(args.hand_check_score)
+        if not csv_path.is_absolute() and not csv_path.exists():
+            csv_path = settings.data_dir / args.hand_check_score
+        if not csv_path.exists():
+            raise SystemExit(
+                f"missing {csv_path}; build it with "
+                "`python -m toolkit_recon.report --hand-check`")
+        # The projection needs the corpus; a missing pass file is not fatal,
+        # it just means the projection block reports itself unavailable.
+        try:
+            corpus, _ = _load(args.pass_number)
+        except SystemExit:
+            corpus = None
+        result = score_hand_check(csv_path, corpus)
+        out = settings.data_dir / "hand_check.json"
+        out.write_text(json.dumps(result, indent=2, ensure_ascii=False),
+                       encoding="utf-8")
+        _print_hand_check(result, out)
         return 0
 
     if args.audit:

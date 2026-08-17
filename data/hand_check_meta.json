@@ -72,5 +72,13 @@
       "name": "Expensify",
       "why": "returned gated -- check it is not a false positive"
     }
-  ]
+  ],
+  "filled_by": {
+    "who": "the agent, not a human",
+    "method": "each truth_access_tier was read off the vendor's own pricing page (or, where the pricing page was silent, the vendor's own API overview), not off the developer docs the pipeline had cited",
+    "caveat": "the queue was designed for a human, because a second model reading the same class of page is not independent of the first. Filled this way the check still discriminates -- it compares pricing pages against docs pages, which is the distinction the test turns on -- but it is weaker than the human check it substitutes for, and a human should re-check at least the four false negatives before the result is quoted as settled",
+    "unverified_rows": [
+      "Salesforce"
+    ]
+  }
 }

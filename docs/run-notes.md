@@ -193,7 +193,9 @@ So the fixes are all the same shape — convert a signal into a consequence:
   rows actually hit it, says "run incomplete" when it cannot tell, and says the
   reason is not recorded when it is not.
 
-A fifth instance turned up while auditing the output rather than the code.
+A fifth instance turned up while auditing the output rather than the code, and
+it is the strongest of the five.
+
 `has_mcp` was guarded by two checks — the cited page must have been fetched,
 and it must mention MCP — and Braze passed both on
 `https://apis.io/providers/braze`, a third-party API directory. Both signals
@@ -201,6 +203,34 @@ were present and neither of them was the one that mattered: whether the vendor
 said it. A directory listing goes stale and a vendor page does not. The rule
 now also requires the evidence to sit on the vendor's own domain, enforced both
 in the pipeline and retroactively in Layer 1, which is what Layer 1 is for.
+
+Two things make it the strongest instance rather than just the latest.
+
+**It was caught by auditing output, not by a symptom.** The other four each
+announced themselves eventually — a bucket that drained, a corpus built off the
+wrong provider, a confidence column that did not track correctness, a report
+line that contradicted the run it was describing. Braze produced no symptom at
+all. The row was well-formed, the guards passed, the evidence URL resolved, and
+`has_mcp: true` looked exactly like a correct row looks. Nothing in the system
+was capable of complaining. Finding it required reading a result and asking
+whether it should be true — which is a different activity from debugging, and
+the only one that would have worked here.
+
+**Both guards were individually correct and jointly insufficient.** This is not
+a case of a check that was wrong, or a check that was skipped. Fetched-ness is
+necessary. Mentions-MCP is necessary. Neither is sufficient, and — the part
+that does not follow from the other two — their conjunction is not sufficient
+either. Provenance was a third property, orthogonal to both, and nothing in the
+design surfaced it. There was no signal to convert into a consequence, because
+the signal did not exist until a real row made its absence visible.
+
+That is the sharper version of the pattern, and it is why this instance is
+worth more than the other four combined. The first four say: when a signal says
+*no*, act on it. The fifth says the set of signals you are acting on can be
+incomplete in a way that is invisible from inside the design, and that
+completeness is only testable against output. Two correct guards passing is
+evidence about the two properties they test and nothing else. It says nothing
+about the property nobody thought to name.
 
 That last one is why `Extraction` and `AppResearch` are separate models rather
 than one. The split is not tidiness. It is the same principle expressed in the
