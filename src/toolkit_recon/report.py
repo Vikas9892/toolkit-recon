@@ -1,4 +1,4 @@
-"""Post-run analysis over pass{N}.json + logs/trace.jsonl.
+﻿"""Post-run analysis over pass{N}.json + logs/trace.jsonl.
 
 Answers the questions a reviewer actually asks: how much of this is
 trustworthy, which rows need a human, and did the pipeline's own machinery
@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections import Counter
+from pathlib import Path
 
 from .config import settings
 
@@ -168,6 +169,122 @@ GRADED = ["one_liner", "auth_methods", "access_tier", "api_style", "api_breadth"
           "has_mcp", "buildable_today", "confidence"]
 
 
+# ---------------------------------------------------------------------------
+# Phase 3 audit scoring
+# ---------------------------------------------------------------------------
+
+# CSV verdict column -> the schema field(s) it adjudicates.
+VERDICT_FIELDS = {
+    "verdict_auth": "auth_methods",
+    "verdict_tier": "access_tier",
+    "verdict_api": "api_style/api_breadth",
+    "verdict_mcp": "has_mcp",
+    "verdict_buildable": "buildable_today",
+}
+VERDICT_VOCAB = {"correct", "partially_correct", "wrong", "unverifiable"}
+
+
+def _tally() -> dict[str, int]:
+    return {v: 0 for v in VERDICT_VOCAB}
+
+
+def _precision(t: dict[str, int]) -> dict:
+    """Strict and lenient precision over verifiable verdicts only.
+
+    `unverifiable` is excluded from the denominator rather than counted as a
+    miss: a field no public document can settle is a fact about the vendor's
+    documentation, not an error by the agent. It is reported separately so the
+    exclusion is visible instead of flattering.
+    """
+    scored = t["correct"] + t["partially_correct"] + t["wrong"]
+    if not scored:
+        return {**t, "scored": 0, "precision": None, "precision_lenient": None}
+    return {
+        **t,
+        "scored": scored,
+        "precision": round(t["correct"] / scored, 4),
+        "precision_lenient": round(
+            (t["correct"] + 0.5 * t["partially_correct"]) / scored, 4
+        ),
+    }
+
+
+def score_audit(csv_path: Path) -> dict:
+    """Read the completed audit CSV and produce the ground-truth report."""
+    import csv as _csv
+
+    with csv_path.open(encoding="utf-8-sig", newline="") as fh:
+        rows = list(_csv.DictReader(fh))
+
+    by_field: dict[str, dict[str, int]] = {f: _tally() for f in VERDICT_FIELDS.values()}
+    by_conf: dict[str, dict[str, int]] = {}
+    misses: list[dict] = []
+    unfilled: list[str] = []
+    bad_vocab: list[dict] = []
+    unverifiable = 0
+    audited_rows = 0
+
+    for r in rows:
+        name = (r.get("name") or "").strip()
+        conf = (r.get("agent_confidence") or "").strip() or "unknown"
+        # high vs medium/low is the comparison that tells us whether the
+        # confidence signal carries information at all.
+        bucket = "high" if conf == "high" else "medium_low"
+        by_conf.setdefault(bucket, _tally())
+
+        filled = False
+        for col, field in VERDICT_FIELDS.items():
+            v = (r.get(col) or "").strip().lower()
+            if not v:
+                continue
+            if v not in VERDICT_VOCAB:
+                bad_vocab.append({"app": name, "column": col, "value": v})
+                continue
+            filled = True
+            by_field[field][v] += 1
+            by_conf[bucket][v] += 1
+            if v == "unverifiable":
+                unverifiable += 1
+            elif v in ("wrong", "partially_correct"):
+                misses.append({
+                    "app": name,
+                    "field": field,
+                    "verdict": v,
+                    "agent_confidence": conf,
+                    "agent_said": r.get(_agent_col(field), ""),
+                    "truth": (r.get("truth_notes") or "").strip(),
+                    "why_it_failed": (r.get("why_it_failed") or "").strip(),
+                })
+        if filled:
+            audited_rows += 1
+        else:
+            unfilled.append(name)
+
+    return {
+        "source_csv": str(csv_path),
+        "rows_in_queue": len(rows),
+        "rows_audited": audited_rows,
+        "rows_not_yet_audited": unfilled,
+        "invalid_verdict_values": bad_vocab,
+        "verdict_vocabulary": sorted(VERDICT_VOCAB),
+        "precision_definition": (
+            "precision = correct / (correct + partially_correct + wrong). "
+            "unverifiable is excluded from the denominator and reported "
+            "separately. precision_lenient credits partially_correct as 0.5."
+        ),
+        "precision_by_field": {f: _precision(t) for f, t in by_field.items()},
+        "precision_by_confidence": {b: _precision(t) for b, t in by_conf.items()},
+        "misses": misses,
+        "unverifiable_count": unverifiable,
+    }
+
+
+def _agent_col(field: str) -> str:
+    if field == "api_style/api_breadth":
+        return "agent_api_style"
+    return f"agent_{field}"
+
+
 def delta(a: int, b: int) -> None:
     """Compare two passes: the accuracy delta `pass_number` exists for.
 
@@ -223,13 +340,87 @@ def delta(a: int, b: int) -> None:
             print(f"      {d}")
 
 
+def _rate(v) -> str:
+    """Format a 0..1 rate. Distinct from _pct, which takes n/total."""
+    return f"{v:.1%}" if isinstance(v, float) else "n/a"
+
+
+def _print_audit(res: dict, out: Path) -> None:
+    print("=" * 70)
+    print("PHASE 3 â€” HUMAN AUDIT  (ground truth)")
+    print("=" * 70)
+    print(f"  rows in queue      : {res['rows_in_queue']}")
+    print(f"  rows audited       : {res['rows_audited']}")
+    if res["rows_not_yet_audited"]:
+        n = len(res["rows_not_yet_audited"])
+        print(f"  ! not yet audited  : {n} ({', '.join(res['rows_not_yet_audited'][:6])}"
+              + (" ..." if n > 6 else "") + ")")
+    if res["invalid_verdict_values"]:
+        print(f"  ! invalid verdicts : {len(res['invalid_verdict_values'])} "
+              f"(must be one of {', '.join(res['verdict_vocabulary'])})")
+
+    print("\n  PRECISION BY CONFIDENCE  <- the headline: does confidence mean anything?")
+    for bucket in ("high", "medium_low"):
+        t = res["precision_by_confidence"].get(bucket)
+        if not t:
+            continue
+        print(f"    {bucket:<12} precision {_rate(t['precision']):>7}"
+              f"  (lenient {_rate(t['precision_lenient']):>7})"
+              f"  n={t['scored']}  unverifiable={t['unverifiable']}")
+    hi = res["precision_by_confidence"].get("high", {}).get("precision")
+    lo = res["precision_by_confidence"].get("medium_low", {}).get("precision")
+    if isinstance(hi, float) and isinstance(lo, float):
+        gap = hi - lo
+        verdict = ("confidence carries signal" if gap > 0.05
+                   else "confidence does NOT separate correct from incorrect"
+                   if gap <= 0 else "signal is weak")
+        print(f"    -> gap {gap:+.1%}: {verdict}")
+
+    print("\n  PRECISION BY FIELD")
+    for f, t in sorted(res["precision_by_field"].items(),
+                       key=lambda kv: (kv[1]["precision"] is None,
+                                       kv[1]["precision"] or 0)):
+        print(f"    {f:<22} {_rate(t['precision']):>7}  n={t['scored']:<3}"
+              f" correct={t['correct']} partial={t['partially_correct']}"
+              f" wrong={t['wrong']} unverifiable={t['unverifiable']}")
+
+    print(f"\n  unverifiable fields : {res['unverifiable_count']}")
+    print(f"  misses              : {len(res['misses'])}")
+    for m in res["misses"][:12]:
+        print(f"    [{m['agent_confidence']:<6}] {m['app']} / {m['field']}"
+              f" â€” {m['verdict']}")
+        if m["why_it_failed"]:
+            print(f"        why: {m['why_it_failed'][:96]}")
+
+    print(f"\n  wrote {out}")
+    print("  Fold into the progression with: python -m toolkit_recon.progression")
+    print("=" * 70)
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="toolkit-recon-report")
     p.add_argument("--pass-number", type=int, default=1)
     p.add_argument("--triage", action="store_true", help="print the human review queue")
     p.add_argument("--delta", nargs=2, type=int, metavar=("A", "B"),
                    help="compare two passes, e.g. --delta 1 2")
+    p.add_argument("--audit", nargs="?", const="audit_queue.csv", default=None,
+                   metavar="CSV",
+                   help="score a completed audit CSV -> data/human_audit.json")
     args = p.parse_args(argv)
+
+    if args.audit:
+        csv_path = Path(args.audit)
+        if not csv_path.is_absolute() and not csv_path.exists():
+            csv_path = settings.data_dir / args.audit
+        if not csv_path.exists():
+            raise SystemExit(f"missing {csv_path}; build it with "
+                             "`python -m toolkit_recon.audit`")
+        result = score_audit(csv_path)
+        out = settings.data_dir / "human_audit.json"
+        out.write_text(json.dumps(result, indent=2, ensure_ascii=False),
+                       encoding="utf-8")
+        _print_audit(result, out)
+        return 0
 
     if args.delta:
         delta(*args.delta)
@@ -245,3 +436,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

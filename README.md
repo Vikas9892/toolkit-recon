@@ -29,7 +29,9 @@ Verification artifacts:
 | `data/disagreements.json` | Every field where the two passes disagreed |
 | `data/pass3.json` | Layer 3: browser-verified resolutions |
 | `evidence/screenshots/{slug}.png` | What the browser actually saw |
-| `data/accuracy_progression.json` | The X < Y < Z scaffold (see below) |
+| `data/audit_queue.csv` | Phase 3: 20 stratified apps for a human to adjudicate |
+| `data/human_audit.json` | Phase 3: precision by field and by confidence |
+| `data/accuracy_progression.json` | Convergence (measured) + accuracy (audited) |
 
 ---
 
@@ -114,35 +116,77 @@ just captured. An ungrounded quote resolves nothing — the field records
 dispute in favour of a fabrication. Resolutions: `pass1_correct`,
 `pass2_correct`, `both_wrong`, `unresolvable`.
 
-### The accuracy progression, and what it deliberately does not claim
+### Convergence is not accuracy
 
-`accuracy_progression.json` ships with `correct` and `accuracy` as **null**.
+The two words mean different things here and the code keeps them apart:
+
+| Term | What it measures | Where it comes from |
+|---|---|---|
+| **`convergence_rate`** | How often the passes agree with *each other* | The chain, from artifacts on disk |
+| **`accuracy`** | How often the agent matches *ground truth* | Phase 3 human audit only |
+
+Convergence measures internal consistency and nothing else. **An agent that is
+consistently wrong scores 100%.** Three identical wrong answers converge
+perfectly. That is why the chain's pass1→pass2→pass3 figure is labelled
+`convergence_rate` everywhere in code and output, and why `accuracy` appears in
+exactly one place — the `accuracy` block of `accuracy_progression.json`, fed
+only by `data/human_audit.json`. A test asserts no pass block carries an
+`accuracy` key.
+
+### Phase 3 — the human audit
+
+```bash
+python -m toolkit_recon.audit              # -> data/audit_queue.csv (20 apps)
+#   a human reads the vendor docs and fills the verdict_* columns
+python -m toolkit_recon.report --audit     # -> data/human_audit.json
+python -m toolkit_recon.progression        # folds it into the accuracy block
+```
+
+**The sample** (`audit.py`) is stratified, seeded, and reproducible: exactly 20
+apps, 10 high-confidence and 10 medium/low, spread across categories with a
+per-category cap derived from how many categories exist. It runs on partial
+data, so the queue can be built while pass 1 is still going.
+
+The 50/50 split is the whole point. Auditing only the rows the pipeline already
+doubts would confirm what we know and hide what we don't — **systematic
+overconfidence is visible only in the high-confidence rows.**
+
+**Verdict vocabulary**: `correct` | `partially_correct` | `wrong` |
+`unverifiable`.
+
+**The headline result** is `precision_by_confidence`: high vs medium/low. If
+high-confidence rows are not measurably more accurate than the rest, the
+confidence column is decoration, and the report says so in those words rather
+than burying it. `precision_by_field` is expected to be uneven — `access_tier`
+is the hardest field and should score worst.
+
+`unverifiable` is excluded from the precision denominator rather than counted
+as a miss: a field no public document can settle is a fact about the vendor's
+documentation, not an error by the agent. It is reported separately so the
+exclusion is visible instead of flattering. `precision_lenient` credits
+`partially_correct` as half.
+
+> **Known gap.** The brief asked to force-include Amazon SP-API, PitchBook, and
+> Salesforce Commerce Cloud as gated products that stress `access_tier`. None
+> of the three is in the 100-app corpus, so no pass-1 row exists to audit. The
+> sampler reports them under `forced_missing` and does **not** silently
+> substitute an easier app, which would hide that the hardest field went
+> untested. To include them: add them to `APPS`, profile with
+> `python -m toolkit_recon --only <slug>`, then rebuild the queue.
+
+### What the progression file deliberately does not claim
+
+`accuracy_progression.json` ships with its whole `accuracy` block **null**.
 
 That is the point. A pipeline that scores its own correctness is measuring
 self-consistency, not accuracy. Inter-pass agreement is the tempting proxy and
 it is the wrong one: two passes can agree and both be wrong, which is exactly
-what the `both_wrong` resolution exists to catch. So every figure that is a
-matter of record — rows touched, flagged, promoted, disputed, resolved — is
-computed from artifacts on disk, and the three accuracy figures are left for a
-human audit to supply:
+what the `both_wrong` resolution exists to catch. Every figure that is a matter
+of record — rows touched, flagged, promoted, disputed, resolved, and the
+`convergence_rate` itself — is computed from artifacts on disk. The accuracy
+numbers wait for a human.
 
-```bash
-python -m toolkit_recon.progression --write-template 20   # labelling sheet
-# a human fills in ground truth -> data/human_audit.json
-python -m toolkit_recon.progression --audit-file data/human_audit.json
-```
-
-The sample is drawn disputed-first, then low/medium confidence, but keeps
-high-confidence rows as a control. Auditing only the rows the pipeline already
-doubts would hide the failure that matters most — systematic overconfidence.
-
-Scoring is per-row exact match across the audited fields, and each pass is
-scored only over the rows it actually covered. Passes 2 and 3 are deliberately
-narrower than pass 1, so their denominators differ and are reported separately
-as `scored_against`; counting an uncovered row as wrong would punish correct
-scoping.
-
-### Re-check passes and the accuracy delta
+### Re-check passes and the field-level delta
 
 `pass_number` is not decoration — it drives a second look at the rows the
 first pass was not entitled to be sure about:
@@ -326,8 +370,9 @@ src/toolkit_recon/
   validate.py       LAYER 1  structural rules over row + trace + evidence
   corroborate.py    LAYER 2  inter-pass agreement, disputes, promotion
   browser_verify.py LAYER 3  Playwright + grounded-quote verification
-  progression.py    accuracy progression scaffold + human audit ingest
-tests/           61 tests, no network required
+  audit.py          PHASE 3  stratified sampler -> audit_queue.csv
+  progression.py    convergence (measured) vs accuracy (audited)
+tests/           86 tests, no network required
 ```
 
 ---

@@ -15,7 +15,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from toolkit_recon.browser_verify import quote_is_grounded  # noqa: E402
 from toolkit_recon.corroborate import compare, _up  # noqa: E402
-from toolkit_recon.progression import AUDITED_FIELDS, _score  # noqa: E402
+# Sampling and scoring moved to toolkit_recon.audit / report.score_audit;
+# see tests/test_audit_harness.py.
 from toolkit_recon.validate import (  # noqa: E402
     Context, RULE_BY_ID, apply_actions, check_row,
 )
@@ -213,31 +214,17 @@ def test_paraphrase_is_rejected():
 # ---------------- progression ----------------
 
 
-def test_scoring_requires_all_audited_fields_to_match():
-    rows = [_row(name="Acme", access_tier="self_serve_free")]
-    exact = [{"name": "Acme", **{f: rows[0][f] for f in AUDITED_FIELDS}}]
-    assert _score(rows, exact) == (1, 1)
-
-    wrong = [dict(exact[0], access_tier="paid_plan_required")]
-    assert _score(rows, wrong) == (0, 1)
-
-
-def test_rows_a_pass_did_not_cover_are_not_scored_against_it():
-    """Passes 2 and 3 are deliberately narrower; absent rows must not count
-    as wrong or the denominator would punish correct scoping."""
-    rows = [_row(name="Acme")]
-    labels = [
-        {"name": "Acme", **{f: rows[0][f] for f in AUDITED_FIELDS}},
-        {"name": "NotProfiled", **{f: rows[0][f] for f in AUDITED_FIELDS}},
-    ]
-    assert _score(rows, labels) == (1, 1)
-
-
 def test_progression_ships_with_null_accuracy():
     """Accuracy must never be inferred from the pipeline's own agreement."""
     from toolkit_recon.progression import build
 
     prog = build()
+    acc = prog["accuracy"]
+    assert acc["precision_by_confidence"] is None
+    assert acc["precision_by_field"] is None
+    assert acc["rows_audited"] is None
+    # No pass block may carry an "accuracy" key — that word is reserved for
+    # the human-audited number and must live in exactly one place.
     for k in ("pass_1", "pass_2", "pass_3"):
-        assert prog[k]["correct"] is None
-        assert prog[k]["accuracy"] is None
+        assert "accuracy" not in prog[k]
+        assert "correct" not in prog[k]
