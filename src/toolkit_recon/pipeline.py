@@ -85,8 +85,22 @@ class Pipeline:
         trace.llm_model = settings.llm_model
 
         try:
-            row = await self._profile_inner(app, trace)
+            # A deadline, not just retries. Cancelling the coroutine also frees
+            # this app's concurrency slot, so one wedged app cannot starve the
+            # other 99 of workers.
+            row = await asyncio.wait_for(
+                self._profile_inner(app, trace), timeout=settings.app_deadline
+            )
             trace.status = "ok"
+        except TimeoutError as e:
+            reason = (f"exceeded the {settings.app_deadline:.0f}s per-app deadline "
+                      f"(stalled after {len(trace.urls_fetched)} document(s))")
+            trace.status = "failed"
+            trace.error = reason
+            trace.final_confidence = "low"
+            trace.confidence_reason = "per-app deadline exceeded"
+            row = failure_row(app, reason, self.pass_number)
+            del e
         except Exception as e:
             reason = f"{type(e).__name__}: {e}"
             trace.status = "failed"

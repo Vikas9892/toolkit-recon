@@ -101,7 +101,16 @@ class ComposioProvider:
 
         async def _attempt() -> dict:
             try:
-                out = await asyncio.to_thread(_call)
+                # to_thread cannot be cancelled, so bound the await. The thread
+                # may linger, but the event loop is freed and the app can fail
+                # or retry instead of blocking its worker indefinitely.
+                out = await asyncio.wait_for(
+                    asyncio.to_thread(_call), timeout=settings.request_timeout
+                )
+            except TimeoutError as e:
+                raise RetryableError(
+                    f"composio {slug} exceeded {settings.request_timeout:.0f}s"
+                ) from e
             except Exception as e:  # SDK-level failure (network, 5xx, auth)
                 raise _classify(f"{type(e).__name__}: {e}") from e
             if not out.get("successful"):

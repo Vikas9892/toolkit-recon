@@ -168,6 +168,16 @@ def test_every_app_declares_official_domains():
         assert a.official_domains, f"{a.slug} has no official domains"
 
 
+def test_per_app_deadline_is_configured_above_observed_worst_case():
+    """A pass-1 run once sat idle 15+ minutes with every worker blocked and no
+    failure row to show for it. The deadline bounds that, and must stay
+    comfortably above the ~300s worst case seen under quota contention."""
+    from toolkit_recon.config import settings
+
+    assert settings.app_deadline >= 480
+    assert settings.app_deadline > settings.request_timeout
+
+
 def test_mcp_mention_pattern_is_word_bounded():
     """Guards the MCP verification: a real mention counts, a substring does not."""
     from toolkit_recon.pipeline import MCP_MENTION

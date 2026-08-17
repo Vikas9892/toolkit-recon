@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     max_doc_chars: int = 14_000  # what we archive to data/raw (full evidence)
     request_timeout: float = 120.0
     max_retries: int = 4
+    # Hard ceiling on one app's whole research cycle. "Never crash the run on
+    # one app" has to include "never let one app hang the run": a pass-1 run
+    # once sat idle for 15+ minutes with every worker blocked and no failure
+    # to show for it, which is worse than a logged error. Comfortably above
+    # the ~300s worst case observed under quota contention.
+    app_deadline: float = 600.0
 
     # --- LLM budget ---
     # The extraction endpoint's TPM quota is the true bottleneck, so the LLM is
