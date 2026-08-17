@@ -259,6 +259,41 @@ def findings(rows: list[dict], traces: list[dict]) -> None:
     col = [sum(1 for r in rows if r["api_breadth"] == b) for b in breadths]
     print(f"  {'total':<22}" + "".join(f"{c:>10}" for c in col) + f"{total:>8}")
 
+    # ---- tier by confidence: is the distribution real? ----
+    from .tier_audit import pricing_evidence, tier_by_confidence
+
+    tc = tier_by_confidence(rows)
+    print("\nACCESS TIER x CONFIDENCE")
+    print(f"  {'':<22}{'high':>12}{'medium/low':>14}")
+    print(f"  {'cohort size':<22}{tc['high_cohort_n']:>12}"
+          f"{tc['weak_cohort_n']:>14}")
+    for t in ["self_serve_free", "self_serve_trial", "paid_plan_required",
+              "admin_approval", "partner_gated", "no_public_api"]:
+        h = tc["tier_distribution_high"][t]
+        w = tc["tier_distribution_weak"][t]
+        if h or w:
+            print(f"  {t:<22}{h:>12}{w:>14}")
+    sh, sw = tc["self_serve_share_high"], tc["self_serve_share_weak"]
+    print(f"  {'self-serve share':<22}"
+          f"{(f'{sh:.0%}' if sh is not None else 'n/a'):>12}"
+          f"{(f'{sw:.0%}' if sw is not None else 'n/a'):>14}")
+    if tc["share_gap_weak_minus_high"] is not None:
+        print(f"  gap (weak - high)     : {tc['share_gap_weak_minus_high']:+.0%}")
+    print(f"  -> {tc['verdict']}")
+
+    # ---- did the evidence ever discuss access at all? ----
+    pe = pricing_evidence(rows)
+    print("\nSELF-SERVE ROWS WITH NO PRICING EVIDENCE")
+    print(f"  self-serve rows              : {pe['self_serve_rows']}")
+    print(f"  evidence mentioned access    : {pe['with_pricing_language']}")
+    print(f"  evidence NEVER mentioned it  : {pe['without_any_pricing_language']}"
+          + (f"  ({pe['share_without']:.0%})" if pe["share_without"] is not None
+             else ""))
+    for row in pe["rows_without_pricing_evidence"][:15]:
+        print(f"    - {row['app']:<26} {row['tier']:<18} {row['confidence']}")
+    print(f"  -> {pe['verdict']}")
+    print(f"  schema note: {pe['schema_note']}")
+
     # ---- buildability ----
     print("\nBUILDABLE TODAY")
     build = Counter(r["buildable_today"] for r in rows)
@@ -572,6 +607,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--findings", action="store_true",
                    help="coverage, cross-tabs, grouped blockers, MCP list, "
                         "deadline clustering")
+    p.add_argument("--hand-check", action="store_true",
+                   help="write data/hand_check_queue.csv for manual tier "
+                        "verification against vendor pricing pages")
     p.add_argument("--delta", nargs=2, type=int, metavar=("A", "B"),
                    help="compare two passes, e.g. --delta 1 2")
     p.add_argument("--audit", nargs="?", const="audit_queue.csv", default=None,
@@ -586,6 +624,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.snapshot:
         out = _snapshot(args.pass_number)
         print(f"wrote {out}")
+        return 0
+
+    if args.hand_check:
+        from .tier_audit import hand_check_queue
+        rows, _ = _load(args.pass_number)
+        path, meta = hand_check_queue(rows)
+        print(f"wrote {path}  ({meta['queue_size']} rows)")
+        if meta["requested_but_not_in_corpus"]:
+            print("\n  ! requested but NOT IN CORPUS, so not queued:")
+            print("    " + ", ".join(meta["requested_but_not_in_corpus"]))
+            print("    They were not silently replaced; see hand_check_meta.json.")
+        for r in meta["rows"]:
+            print(f"    {r['name']:<28} {r['why']}")
         return 0
 
     if args.audit:

@@ -80,6 +80,19 @@ def test_r3_rejects_mcp_claim_when_page_never_mentions_mcp():
     assert "R3_MCP_UNVERIFIED" in _ids(check_row(row, _ctx()))
 
 
+def test_r3_rejects_mcp_evidence_from_a_third_party_directory():
+    """Braze's MCP claim rested on apis.io, an API directory. A directory
+    listing is not the vendor saying so, and directories go stale."""
+    url = "https://apis.io/providers/acme"
+    ctx = _ctx(fetched_urls={url},
+               doc_chars={url: 4000},
+               doc_text={url: "Acme MCP server is available here."})
+    row = _row(has_mcp=True, mcp_evidence_url=url, evidence_urls=[url])
+    vs = check_row(row, ctx)
+    assert "R3_MCP_UNVERIFIED" in _ids(vs)
+    assert any("not on a vendor domain" in v.detail for v in vs)
+
+
 def test_r3_accepts_mcp_claim_backed_by_the_page():
     ctx = _ctx(doc_text={"https://docs.acme.com/auth": "Our MCP server is live."})
     row = _row(has_mcp=True, mcp_evidence_url="https://docs.acme.com/auth")

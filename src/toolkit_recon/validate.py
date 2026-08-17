@@ -56,7 +56,8 @@ RULES: list[RuleSpec] = [
     RuleSpec("R2_EVIDENCE_NOT_FETCHED",
              "every evidence URL must be in the actually-fetched set", "flag"),
     RuleSpec("R3_MCP_UNVERIFIED",
-             "has_mcp requires a fetched page that actually mentions MCP", "flag"),
+             "has_mcp requires a fetched page on the vendor's own domain that "
+             "actually mentions MCP", "flag"),
     RuleSpec("R4_CONTRADICTION_TIER",
              "buildable_today=yes contradicts partner_gated/no_public_api", "flag"),
     RuleSpec("R5_CONTRADICTION_STYLE",
@@ -167,6 +168,13 @@ def check_row(row: dict, ctx: Context) -> list[Violation]:
             add("R3_MCP_UNVERIFIED", f"mcp_evidence_url not fetched: {mu}")
         elif mu in ctx.doc_text and not MCP_MENTION.search(ctx.doc_text[mu]):
             add("R3_MCP_UNVERIFIED", f"cited page does not mention MCP: {mu}")
+        elif not is_official(mu, ctx.official_domains):
+            # A third-party API directory listing an MCP server is not the
+            # vendor saying so. Braze's claim rested on apis.io, which can be
+            # stale or simply wrong; "official MCP server" has to come from
+            # the vendor's own documentation.
+            add("R3_MCP_UNVERIFIED",
+                f"MCP evidence is not on a vendor domain: {mu}")
 
     # R4 / R5 — internal contradictions.
     if row.get("buildable_today") == "yes" and row.get("access_tier") in {

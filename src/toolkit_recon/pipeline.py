@@ -258,6 +258,11 @@ class Pipeline:
             mcp_url, mcp_note = None, " [pipeline: MCP citation was not in the fetched set]"
         elif mcp_url and not MCP_MENTION.search(by_url[mcp_url]):
             mcp_url, mcp_note = None, " [pipeline: cited MCP page does not mention MCP]"
+        elif mcp_url and not is_official(mcp_url, app.official_domains):
+            # A third-party directory listing an MCP server is not the vendor
+            # saying so, and directories go stale.
+            mcp_url, mcp_note = None, (
+                " [pipeline: MCP evidence was not on a vendor domain]")
 
         notes = extraction.agent_notes + mcp_note
         if extraction.evidence_urls and not cited:

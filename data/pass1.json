@@ -553,6 +553,33 @@
     "extracted_by": "openai/gpt-oss-20b"
   },
   {
+    "name": "Basecamp",
+    "category": "Project Management",
+    "one_liner": "Basecamp is a project‑management platform that offers a public REST API authenticated via OAuth 2.0 (and API keys for some apps).",
+    "auth_methods": [
+      "OAuth2",
+      "API Key"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://basecamp.com/pricing",
+      "https://github.com/basecamp/bc3-api/blob/master/sections/authentication.md",
+      "https://github.com/basecamp/api/blob/master/sections/authentication.md"
+    ],
+    "confidence": "high",
+    "agent_notes": "API breadth inferred as moderate based on limited endpoint documentation; full surface not listed in supplied docs.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
     "name": "Bitbucket",
     "category": "Developer Tools",
     "one_liner": "Bitbucket Cloud is a Git repository hosting service that offers a REST API for integration and automation.",
@@ -579,6 +606,141 @@
     "extracted_by": "openai/gpt-oss-20b"
   },
   {
+    "name": "Datadog",
+    "category": "Developer Tools",
+    "one_liner": "Datadog is a cloud‑scale monitoring platform that exposes a REST API for programmatic access.",
+    "auth_methods": [
+      "API Key",
+      "Bearer Token"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://docs.datadoghq.com/api/latest/authentication",
+      "https://docs.datadoghq.com/api/latest.md",
+      "https://docs.datadoghq.com/account_management/personal-access-tokens"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Application Key is not represented in the auth_methods enum; mapped to unknown. Service Access Token is a bearer token. No explicit tier info found.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "CircleCI",
+    "category": "Developer Tools",
+    "one_liner": "CircleCI is a cloud-native continuous integration and delivery (CI/CD) platform that enables software teams to automate build, test, and deployment workflows.",
+    "auth_methods": [
+      "Bearer Token",
+      "Basic",
+      "API Key"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": true,
+    "mcp_evidence_url": "https://circleci.com/docs/guides/toolkit/api-developers-guide",
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://support.circleci.com/hc/en-us/articles/360052405651-Using-Basic-Authentication-in-CircleCI-API-Calls",
+      "https://circleci.com/docs/api/v1",
+      "https://circleci.com/docs/guides/toolkit/api-developers-guide"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The API is documented as free; no explicit tier statement was found. The Circle-Token header is treated as an API Key. No conflicts among sources.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Box",
+    "category": "Storage & Documents",
+    "one_liner": "Box provides a cloud storage and file sharing platform with APIs for manipulating files, folders, users, and enterprise content management.",
+    "auth_methods": [
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developer.box.com/guides/authentication",
+      "https://developer.box.com/platform/authentication-methods",
+      "https://developer.box.com/reference/post-oauth2-token"
+    ],
+    "confidence": "high",
+    "agent_notes": "Auth methods inferred from OAuth2 flows; JWT and Client Credentials Grant are OAuth2 sub-flows. Access tier inferred from free developer account granting console access. No explicit MCP evidence found.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Airtable",
+    "category": "Storage & Documents",
+    "one_liner": "Airtable is a cloud-based spreadsheet-database hybrid that offers a REST API for programmatic access to bases and tables.",
+    "auth_methods": [
+      "Bearer Token",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "broad",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://airtable.com/developers/web/api/authentication",
+      "https://airtable.com/developers/web/guides/oauth-integrations",
+      "https://airtable.com/developers/web/api/oauth-reference"
+    ],
+    "confidence": "medium",
+    "agent_notes": "No explicit mention of a paid plan requirement; inferred that API is available to all users. No indication of admin approval or partner gating.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Braze",
+    "category": "Marketing",
+    "one_liner": "Braze is a customer engagement platform that offers REST APIs for managing user profiles, orchestrating multi‑channel messaging campaigns, and exporting analytics.",
+    "auth_methods": [
+      "Bearer Token",
+      "API Key"
+    ],
+    "access_tier": "paid_plan_required",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": true,
+    "mcp_evidence_url": "https://apis.io/providers/braze",
+    "buildable_today": "yes_with_caveats",
+    "primary_blocker": "API access requires a paid plan",
+    "evidence_urls": [
+      "https://learning.braze.com/rest-api-basics",
+      "https://apis.io/providers/braze",
+      "https://www.findapi.dev/api/braze"
+    ],
+    "confidence": "high",
+    "agent_notes": "API key is used as a bearer token; paid plan explicitly required; no free trial; no admin enablement required.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
     "name": "ActiveCampaign",
     "category": "Marketing",
     "one_liner": "ActiveCampaign provides a REST API for managing contacts, deals, and other marketing resources.",
@@ -601,6 +763,58 @@
     ],
     "confidence": "high",
     "agent_notes": "OAuth2 is referenced in the App Studio context, but the public API uses an API key via the Api-Token header.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Freshdesk",
+    "category": "Customer Support",
+    "one_liner": "Freshdesk is a cloud‑based customer support platform that offers ticketing and helpdesk APIs.",
+    "auth_methods": [
+      "Basic"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.freshdesk.com",
+      "https://developers.freshworks.com/freshdesk-sdk"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Tier for API access is not explicitly stated in the documents; inferred as free based on lack of restriction. No evidence of a Model Context Protocol server.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Gorgias",
+    "category": "Customer Support",
+    "one_liner": "Gorgias is a customer support helpdesk platform that offers a public and private API for accessing account data and integrating with apps.",
+    "auth_methods": [
+      "Basic",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.gorgias.com/reference/authentication",
+      "https://developers.gorgias.com/docs/oauth2-bearer-token",
+      "https://developers.gorgias.com/docs/set-up-oauth2-app-store"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Auth for private apps uses HTTP Basic Auth with an API key; public apps require OAuth2. No paid plan or admin approval is mentioned. No MCP server is referenced.",
     "pass_number": 1,
     "extracted_by": "openai/gpt-oss-20b"
   },
@@ -659,6 +873,60 @@
     "extracted_by": "openai/gpt-oss-20b"
   },
   {
+    "name": "Deel",
+    "category": "HR & Recruiting",
+    "one_liner": "Deel provides a REST API for managing contracts, workers, and payments in HR and recruiting workflows.",
+    "auth_methods": [
+      "API Key",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developer.deel.com/api/authentication.mdx",
+      "https://developer.deel.com/api/oauth.mdx",
+      "https://developer.deel.com/api/quickstart.mdx"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Auth methods inferred from documentation; no explicit paid tier requirement stated, so assumed free access. No conflict among sources. [pipeline: MCP citation was not in the fetched set]",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Brex",
+    "category": "Finance & Accounting",
+    "one_liner": "Brex provides a unified spend platform with corporate cards, expense management, and a RESTful API for finance workflows.",
+    "auth_methods": [
+      "Bearer Token",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "broad",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developer.brex.com/guides/partner_authentication",
+      "https://developer.brex.com/guides/authentication",
+      "https://developer.brex.com"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Access tier inferred as self_serve_free because no paid plan is required for customer API use; partner authentication is partner gated but not required for all users. No MCP evidence found.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
     "name": "BILL",
     "category": "Finance & Accounting",
     "one_liner": "BILL provides a REST API for accounts payable and receivable operations, including authentication and session management.",
@@ -682,6 +950,58 @@
     ],
     "confidence": "high",
     "agent_notes": "Breadth inferred as narrow due to limited endpoint documentation; further endpoints likely exist but are not shown in the supplied documents.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Expensify",
+    "category": "Finance & Accounting",
+    "one_liner": "Expensify provides enterprise‑grade expense management and integration APIs for importing, exporting, and embedding expense workflows.",
+    "auth_methods": [
+      "Partner/Custom"
+    ],
+    "access_tier": "partner_gated",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes_with_caveats",
+    "primary_blocker": "API access requires an enterprise customer agreement; the API is not accepting new applications at this time",
+    "evidence_urls": [
+      "https://www.expensify.com/api-sso.html",
+      "https://www.expensify.com/api.html",
+      "https://www.expensify.com/api-whitelabel.html"
+    ],
+    "confidence": "high",
+    "agent_notes": "The tier was inferred from explicit statements that the API is not accepting new applications and that only enterprise customers can integrate. No public or trial access is documented.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Databricks",
+    "category": "Analytics & Data",
+    "one_liner": "Databricks is a unified analytics platform that enables data engineering, data science, and machine learning workloads on cloud infrastructure.",
+    "auth_methods": [
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://docs.databricks.com/aws/en/dev-tools/auth",
+      "https://docs.databricks.com/aws/en/security/auth",
+      "https://docs.databricks.com/aws/en/dev-tools/auth/oauth-u2m"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Tier requirement not explicitly stated in the supplied documents; inferred as self-serve based on lack of paid plan mention.",
     "pass_number": 1,
     "extracted_by": "openai/gpt-oss-20b"
   },
@@ -713,6 +1033,60 @@
     "extracted_by": "openai/gpt-oss-20b"
   },
   {
+    "name": "Google Analytics 4",
+    "category": "Analytics & Data",
+    "one_liner": "Google Analytics 4 provides web and app analytics data via APIs for reporting, configuration, measurement, and user deletion.",
+    "auth_methods": [
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.google.com/identity/protocols/oauth2",
+      "https://developers.google.com/analytics/devguides/limits-and-quotas",
+      "https://developers.google.com/analytics/devguides/collection/ga4"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Access tier inferred from absence of paid plan requirement in the provided documents; no explicit tier statement found.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Shopify",
+    "category": "E-commerce",
+    "one_liner": "Shopify provides APIs for building apps that integrate with online stores.",
+    "auth_methods": [
+      "OAuth2",
+      "API Key"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST",
+      "GraphQL"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://shopify.dev/docs/api/usage/authentication",
+      "https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens",
+      "https://shopify.dev/docs/apps/build/authentication-authorization/client-secrets"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Auth methods inferred from client credentials and OAuth flows; access tier inferred as free based on lack of paid plan mention.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
     "name": "BigCommerce",
     "category": "E-commerce",
     "one_liner": "BigCommerce is an e-commerce platform that offers REST APIs for store administration and customer authentication.",
@@ -735,6 +1109,140 @@
     ],
     "confidence": "medium",
     "agent_notes": "No explicit mention of paid plan requirement; API appears publicly available.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Etsy",
+    "category": "E-commerce",
+    "one_liner": "Etsy Open API v3 provides REST endpoints for managing shop inventory, sales, and shop data.",
+    "auth_methods": [
+      "API Key",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": true,
+    "mcp_evidence_url": "https://www.etsy.com/developers/documentation/getting_started/oauth",
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://www.etsy.com/developers/documentation/getting_started/oauth",
+      "https://www.etsy.com/developers"
+    ],
+    "confidence": "high",
+    "agent_notes": "Access tier inferred as self-serve free because the docs describe a free personal app and no paid plan requirement is mentioned. The need for app registration and review is noted but does not block toolkit creation for the personal app tier.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Calendly",
+    "category": "Scheduling",
+    "one_liner": "Calendly is a scheduling platform that offers a public API for integrating scheduling functionality.",
+    "auth_methods": [
+      "API Key",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developer.calendly.com/authentication",
+      "https://developer.calendly.com/creating-an-oauth-app",
+      "https://developer.calendly.com/when-to-choose-between-personal-access-tokens-and-oauth"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Assumed PATs function as API keys; no paid tier or MCP mentioned; API breadth inferred as moderate from available endpoints.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Figma",
+    "category": "Design",
+    "one_liner": "Figma is a collaborative design platform that provides a REST API for accessing files, components, and other design assets.",
+    "auth_methods": [
+      "OAuth2",
+      "API Key"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST",
+      "Webhooks only"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.figma.com/docs/rest-api/authentication",
+      "https://developers.figma.com/docs/rest-api/oauth-apps",
+      "https://developers.figma.com/docs/rest-api"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Plan access tokens require organization admin but are available for any Organization or Enterprise plan; no explicit paid tier is required for basic API usage.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "DocuSign",
+    "category": "E-signature",
+    "one_liner": "DocuSign is a cloud-based e‑signature platform that lets users create, send, and sign documents electronically.",
+    "auth_methods": [
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.docusign.com/platform/auth/jwt",
+      "https://developers.docusign.com/platform/auth/reference/obtain-consent"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Only authentication-related documentation was provided; no other API endpoints were referenced, so the breadth assessment is limited to auth endpoints.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Canva",
+    "category": "Design",
+    "one_liner": "Canva Connect APIs enable developers to authenticate users via OAuth 2.0 and manage access tokens for design integration.",
+    "auth_methods": [
+      "OAuth2",
+      "Basic",
+      "Bearer Token"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://www.canva.dev/docs/connect/authentication",
+      "https://www.canva.dev/docs/admin/authentication",
+      "https://www.canva.dev/docs/connect/api-reference/authentication"
+    ],
+    "confidence": "medium",
+    "agent_notes": "No explicit mention of paid plan or admin approval; inferred that API is publicly available and free. The docs cover OAuth 2.0 Authorization Code flow with PKCE and token introspection, but breadth appears limited to authentication endpoints.",
     "pass_number": 1,
     "extracted_by": "openai/gpt-oss-20b"
   }

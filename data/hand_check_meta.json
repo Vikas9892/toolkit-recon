@@ -1,0 +1,76 @@
+{
+  "queue_size": 12,
+  "requested_but_not_in_corpus": [
+    "DealCloud",
+    "Salesforce Commerce Cloud",
+    "Amazon Selling Partner",
+    "PitchBook",
+    "Gladly",
+    "Bright Data",
+    "Clay"
+  ],
+  "requested_not_in_corpus_note": "None of the seven products requested for hand-checking exist in the 100-app corpus, so none could be queued. They were NOT silently replaced. The queue below is a substitute drawn from the corpus: products whose access is commercially gated in practice but which the pipeline called self-serve (candidate false negatives), plus every row it did call gated (candidate false positives).",
+  "expected_gated_present_in_corpus": [
+    "Apollo.io",
+    "BILL",
+    "Braze",
+    "Brex",
+    "Databricks",
+    "Deel",
+    "Gorgias",
+    "Outreach",
+    "Salesforce",
+    "Salesloft",
+    "WhatsApp Business Platform"
+  ],
+  "rows": [
+    {
+      "name": "Salesloft",
+      "why": "expected-gated but returned self-serve"
+    },
+    {
+      "name": "Apollo.io",
+      "why": "expected-gated but returned self-serve"
+    },
+    {
+      "name": "Gorgias",
+      "why": "expected-gated but returned self-serve"
+    },
+    {
+      "name": "Deel",
+      "why": "expected-gated but returned self-serve"
+    },
+    {
+      "name": "Brex",
+      "why": "expected-gated but returned self-serve"
+    },
+    {
+      "name": "BILL",
+      "why": "expected-gated but returned self-serve"
+    },
+    {
+      "name": "Databricks",
+      "why": "expected-gated but returned self-serve"
+    },
+    {
+      "name": "Salesforce",
+      "why": "returned gated -- check it is not a false positive"
+    },
+    {
+      "name": "Outreach",
+      "why": "returned gated -- check it is not a false positive"
+    },
+    {
+      "name": "WhatsApp Business Platform",
+      "why": "returned gated -- check it is not a false positive"
+    },
+    {
+      "name": "Braze",
+      "why": "returned gated -- check it is not a false positive"
+    },
+    {
+      "name": "Expensify",
+      "why": "returned gated -- check it is not a false positive"
+    }
+  ]
+}

@@ -159,12 +159,16 @@ now aborts with the used-versus-limit numbers and stops starting new apps.
 
 ## The pattern underneath all of it
 
-Three of the failures above look unrelated. They are the same bug.
+Four of the failures above look unrelated. They are the same bug.
 
 The health probe sent one token and got a 200 back, so the daily bucket looked
 fine while being spent. The provider fallback wrote a warning to stderr and
 carried on profiling apps off DuckDuckGo. The confidence column asked the model
-whether it had read official documentation and believed the answer.
+whether it had read official documentation and believed the answer. And the
+findings report printed "the run stopped on the provider's daily token budget"
+as a hardcoded line, while the run was still going — I wrote that one *while
+fixing the other three*, which is the clearest evidence I have that the shape
+is easy to reproduce and hard to see.
 
 In each case **the signal existed and nothing acted on it.** The rate-limit
 headers were right there in the response. The warning was printed. The model
@@ -185,6 +189,18 @@ So the fixes are all the same shape — convert a signal into a consequence:
   corpus built on the wrong evidence source is not a degraded result, it is a
   different experiment.
 - The model no longer asserts its own trustworthiness at all.
+- The findings report reads the trace and names the daily-quota cause only when
+  rows actually hit it, says "run incomplete" when it cannot tell, and says the
+  reason is not recorded when it is not.
+
+A fifth instance turned up while auditing the output rather than the code.
+`has_mcp` was guarded by two checks — the cited page must have been fetched,
+and it must mention MCP — and Braze passed both on
+`https://apis.io/providers/braze`, a third-party API directory. Both signals
+were present and neither of them was the one that mattered: whether the vendor
+said it. A directory listing goes stale and a vendor page does not. The rule
+now also requires the evidence to sit on the vendor's own domain, enforced both
+in the pipeline and retroactively in Layer 1, which is what Layer 1 is for.
 
 That last one is why `Extraction` and `AppResearch` are separate models rather
 than one. The split is not tidiness. It is the same principle expressed in the
@@ -246,6 +262,14 @@ category first, until every category reaches a floor before any gets an extra
 app. Projection at the time of the switch: 11 of 14 categories reach at least
 three rows, against 3 of 14 under list order. The decision and its reason are
 written to `queue_order.json` so it reads as a call, not an accident.
+
+The reorder landed later than it should have. By the time I switched, 20 rows
+were done and **all 20 sat in two categories** — CRM & Sales and Communication,
+ten each — because the corpus is grouped by category and the queue ran in list
+order. Immediately after the switch all 14 categories were represented, but 12
+of them at exactly one row. Under list order those 12 would have been at zero
+and stayed there. The fix worked; it worked with about 40 apps of budget to
+spare, which is narrower than I would like.
 
 The three that stay thin — Design at 2, Scheduling at 1, E-signature at 1 — are
 limited by the corpus itself, not the ordering. Those categories only have that
