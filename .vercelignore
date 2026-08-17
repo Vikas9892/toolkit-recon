@@ -1,0 +1,5 @@
+# Safety net for a root-level deploy: never upload anything but the built page.
+*
+!site
+!site/**
+!vercel.json
