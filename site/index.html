@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>toolkit-recon — what the run actually established</title>
+<meta name="description" content="Profiling 100 SaaS apps for agent-toolkit buildability. 63 completed. What the pipeline got right, what it got wrong, and what it could not represent.">
+<style>
+:root{
+  --bg:#0a0c0f; --panel:#11141a; --panel2:#151922; --line:#242a35;
+  --fg:#e7ebf2; --dim:#98a2b3; --faint:#6b7686;
+  --accent:#f0a04b; --accent-dim:#f0a04b22;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px;line-height:1.6;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.dim{color:var(--dim)}.faint{color:var(--faint)}
+.accent-t{color:var(--accent)}
+.strong{font-weight:600}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:var(--accent)}
+
+header{border-bottom:1px solid var(--line);padding:44px 0 28px;margin-bottom:48px}
+header h1{margin:0 0 6px;font-size:15px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--accent);font-family:var(--mono)}
+header .sub{color:var(--dim);font-size:14px;margin:0}
+
+section{margin:0 0 68px}
+h2{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);
+  font-family:var(--mono);font-weight:600;margin:0 0 20px;
+  padding-bottom:10px;border-bottom:1px solid var(--line)}
+h3{font-size:16px;margin:28px 0 10px;font-weight:600}
+
+.headline{font-size:clamp(24px,3.6vw,40px);line-height:1.24;font-weight:600;
+  letter-spacing:-.02em;margin:0 0 26px;max-width:22ch}
+.headline .hl{color:var(--accent)}
+.lede{font-size:clamp(16px,1.7vw,19px);line-height:1.62;color:var(--fg);
+  max-width:70ch;margin:0 0 18px}
+.lede.two{color:var(--dim)}
+
+.inline-notes{list-style:none;padding:0;margin:26px 0 0;display:grid;gap:10px}
+.inline-notes li{padding:12px 14px;background:var(--panel);border-left:2px solid var(--accent);
+  font-size:14px;color:var(--dim);line-height:1.55}
+
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--faint);font-weight:600;
+  padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th.num,td.num{text-align:right}
+tr.tot td{border-top:1px solid var(--line);font-weight:600}
+
+.tag{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;
+  letter-spacing:.09em;padding:3px 7px;border-radius:3px;white-space:nowrap}
+.tag.miss{background:var(--accent);color:#1a1206}
+.tag.ok{background:#232a33;color:var(--dim)}
+.tag.gap{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+tr.why-row td{border-bottom:1px solid var(--line);padding-top:0}
+.why{color:var(--dim);font-size:13px;line-height:1.55;max-width:88ch}
+.src a{font-family:var(--mono);font-size:11.5px;word-break:break-all}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+.grid{display:grid;gap:18px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px}
+.card h4{margin:0 0 12px;font-size:12px;font-family:var(--mono);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--faint);font-weight:600}
+.stat{font-family:var(--mono);font-size:30px;font-weight:600;line-height:1.1;
+  letter-spacing:-.02em}
+.stat.acc{color:var(--accent)}
+.stat-l{font-size:12.5px;color:var(--faint);margin-top:6px;line-height:1.45}
+
+.caption{font-size:13.5px;color:var(--dim);margin:12px 0 0;line-height:1.6;max-width:78ch}
+.caption strong{color:var(--fg);font-weight:600}
+.chart-box{position:relative;height:280px;margin-top:6px}
+.chart-fallback{font-size:13px;color:var(--faint);font-family:var(--mono)}
+
+ul.plain{list-style:none;padding:0;margin:0}
+ul.plain li{padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+ul.plain li:last-child{border-bottom:0}
+
+.note{background:var(--panel);border:1px solid var(--line);border-left:2px solid var(--accent);
+  border-radius:0 5px 5px 0;padding:16px 18px;font-size:14px;color:var(--dim);
+  line-height:1.62;margin:18px 0}
+.note .t{color:var(--fg);font-weight:600;display:block;margin-bottom:6px}
+
+.lesson{border-left:2px solid var(--line);padding:0 0 0 20px;margin:0 0 24px}
+.lesson h4{margin:0 0 6px;font-size:15px;font-weight:600}
+.lesson p{margin:0;color:var(--dim);font-size:14.5px;line-height:1.62;max-width:80ch}
+.lesson.key{border-left-color:var(--accent)}
+
+.pipe{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:0 0 8px}
+.pipe .st{flex:1 1 128px;background:var(--panel);border:1px solid var(--line);
+  border-radius:5px;padding:12px;font-size:12.5px}
+.pipe .st b{display:block;font-family:var(--mono);font-size:11px;color:var(--accent);
+  letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+.pipe .st span{color:var(--faint);font-size:12px;line-height:1.45;display:block}
+
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.controls select,.controls input{background:var(--panel2);color:var(--fg);
+  border:1px solid var(--line);border-radius:4px;padding:7px 9px;font-size:13px;
+  font-family:inherit}
+.controls input{flex:1 1 190px;min-width:150px}
+button.toggle{background:var(--panel);color:var(--fg);border:1px solid var(--line);
+  border-radius:5px;padding:11px 16px;font-size:14px;cursor:pointer;font-family:inherit;
+  width:100%;text-align:left}
+button.toggle:hover{border-color:var(--accent)}
+button.toggle .c{color:var(--faint);font-family:var(--mono);font-size:12.5px}
+#tableWrap[hidden]{display:none}
+#dataTable th{cursor:pointer;user-select:none}
+#dataTable th:hover{color:var(--accent)}
+#dataTable td{font-size:13px}
+.badge{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:3px;
+  background:#232a33;color:var(--dim)}
+.badge.high{background:var(--accent-dim);color:var(--accent)}
+.badge.failed{background:var(--accent);color:#1a1206}
+.ev a{font-family:var(--mono);font-size:11px}
+
+footer{border-top:1px solid var(--line);padding:30px 0 60px;margin-top:60px;
+  color:var(--faint);font-size:13px}
+footer a{margin-right:16px;font-family:var(--mono);font-size:12.5px}
+@media(max-width:640px){
+  .headline{max-width:none}
+  td,th{padding:7px 6px}
+  .chart-box{height:240px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>toolkit-recon</h1>
+    <p class="sub">Profiling SaaS apps for agent-toolkit buildability ·
+      <span class="mono">63 of 100 profiled</span> ·
+      extraction model <span class="mono">openai/gpt-oss-20b</span></p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ============ 1. HEADLINE ============ -->
+<section id="headline">
+  <p class="headline">Of 63 apps profiled, 48 report as
+    self-serve. Hand-checking says that is <span class="hl">a ceiling,
+    not a count</span>.</p>
+
+  <p class="lede">The pipeline was <strong>100% correct every time it said
+    &ldquo;gated&rdquo;</strong>, and wrong on 1 of 3
+    scoreable rows when it said &ldquo;self-serve&rdquo;. The miss —
+    Salesloft — shows the mechanism: developer documentation describing how to
+    authenticate was read as evidence that credentials are obtainable, for a
+    vendor that publishes no pricing at all.</p>
+
+  <p class="lede two">The only apps it reliably identifies as unreachable are
+    the 9 with no public API — which are also the only 9 with
+    narrow surfaces. It detects the absence of an API. It does not detect the
+    presence of a paywall.</p>
+
+  <p class="lede two">A fourth app broke the schema rather than the pipeline.
+    BILL&rsquo;s access tier depends on which product you mean: Enterprise for
+    AP/AR, free for the API platform. Neither enum value is correct, because
+    access tier is a property of a product, not a company.</p>
+
+  <p class="lede"><strong>Implication for toolkit prioritisation:</strong>
+    <span class="accent-t">access_tier needs a second evidence source, and for
+    multi-product vendors it needs a different research unit.</span></p>
+
+  <ul class="inline-notes">
+    <li>The sample is <strong>3 scoreable rows</strong>, enriched
+      with expected-gated products. It bounds the <strong>direction</strong> of
+      the error, not its magnitude.</li>
+    <li>The tier &times; confidence cross-tab returned a null (89% vs 91%)
+      because uniform bias produces a null there <strong>by
+      construction</strong> — it detects only bias that concentrates in the
+      weak cohort.</li>
+    <li><strong>No accuracy number appears on this page.</strong> Accuracy
+      requires the human audit, which was generated and not filled.</li>
+  </ul>
+</section>
+
+<!-- ============ 2. HAND-CHECK TABLE ============ -->
+<section id="handcheck">
+  <h2>Hand check — against the vendor&rsquo;s own pages</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>verdict</th><th>app</th><th>pipeline said</th>
+      <th>vendor reality</th><th>citation</th></tr></thead>
+    <tbody><tr class="miss"><td><span class="tag miss">MISS</span></td><td class="mono">Salesloft</td><td class="mono dim">self_serve_free</td><td class="mono accent-t">partner_gated</td><td class="src"><a href="https://www.salesloft.com/pricing" target="_blank" rel="noopener">https://www.salesloft.com/pricing</a></td></tr><tr class="why-row miss"><td></td><td colspan="4" class="why">MISS. No self-serve API signup and no API tier on the pricing page; every path routes to Sales. The extractor cited developers.salesloft.com auth pages -- documentation describing how to authenticate, for a vendor that publishes no pricing at all.</td></tr>
+<tr class="ok"><td><span class="tag ok">PIPELINE CORRECT</span></td><td class="mono">Gorgias</td><td class="mono dim">self_serve_free</td><td class="mono accent-t">self_serve_free</td><td class="src"><a href="https://www.gorgias.com/pricing" target="_blank" rel="noopener">https://www.gorgias.com/pricing</a></td></tr><tr class="why-row ok"><td></td><td colspan="4" class="why">PIPELINE CORRECT. Free trial, and the API documentation states API access is available on all Helpdesk plans. The agent-filled pass called this a miss on the basis that no permanently free tier exists; that reasoning did not survive contact with the API docs.</td></tr>
+<tr class="ok"><td><span class="tag ok">PIPELINE CORRECT</span></td><td class="mono">Deel</td><td class="mono dim">self_serve_free</td><td class="mono accent-t">self_serve_free</td><td class="src"><a href="https://developer.deel.com/docs/api-tokens-1" target="_blank" rel="noopener">https://developer.deel.com/docs/api-tokens-1</a></td></tr><tr class="why-row ok"><td></td><td colspan="4" class="why">PIPELINE CORRECT. Developer documentation shows self-serve API onboarding with a sandbox and a Developer Center for token issuance. The agent-filled pass called this a miss by reasoning from the absence of a free plan on the pricing page, which is not the same question.</td></tr>
+<tr class="gap"><td><span class="tag gap">UNREPRESENTABLE</span></td><td class="mono">BILL</td><td class="mono dim">self_serve_free</td><td class="mono accent-t">schema_cannot_express</td><td class="src"><a href="https://www.bill.com/pricing" target="_blank" rel="noopener">https://www.bill.com/pricing</a></td></tr><tr class="why-row gap"><td></td><td colspan="4" class="why">UNREPRESENTABLE. The pricing page lists API access under Enterprise for the AP/AR offering; the API documentation separately states the BILL API is free and covers multiple products including Spend &amp; Expense. Neither enum value is correct because the question is malformed -- access tier is a property of a product, not a company.</td></tr></tbody>
+  </table>
+  </div>
+
+  <div class="note">
+    <span class="t">The correction: an earlier agent-filled pass got
+      2 of 4 wrong</span>
+    Before the human check, a second model read the same vendor pages and
+    called <span class="mono">Gorgias, Deel</span> misses. Human
+    verification found the pipeline was right on both. This is direct evidence
+    that <strong>a second model reading the same class of page is not
+    independent verification</strong> — which is the caveat the artifact
+    already carried on its own face. The caveat was correct.
+  </div>
+
+  <p class="caption">DIRECTION ONLY. 3 scoreable self-serve rows is below the 5 needed to state a rate, so no magnitude is claimed here. What the sample does support is the direction: the miss (33% of 3) is a gated product read as self-serve, and 4 of 4 gated calls were correct. Errors run one way -- the method over-reports reachability and never under-reports it. The sample is also enriched with expected-gated products, so it bounds the direction of the error, not its magnitude.</p>
+  <p class="caption">The sample is 3 scoreable rows, enriched with expected-gated products. It bounds the DIRECTION of the error, not its magnitude. Not a random sample and not a corpus-wide error rate: these are the rows most likely to be wrong, chosen for that reason. What it establishes is that the errors run one way -- gated products read as self-serve, never the reverse. What it cannot establish is how many rows in the corpus are affected.</p>
+</section>
+
+<!-- ============ 3. VERIFIED / NOT VERIFIED ============ -->
+<section id="scope">
+  <h2>What I could and could not verify</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h4>Verified by hand</h4>
+      <p class="caption" style="margin-top:0">Against vendor pricing pages:
+        <span class="mono">Salesloft, Gorgias, Deel, BILL</span>. These four are
+        the strongest result on this page because they
+        <strong>do not require trusting the pipeline</strong> — the
+        vendor&rsquo;s own page is one click away in the table above.</p>
+    </div>
+    <div class="card">
+      <h4>Not verified</h4>
+      <p class="caption" style="margin-top:0">The 19-app audit queue
+        was generated but not filled, so <strong>no accuracy figure appears
+        anywhere</strong>. What appears instead is cross-model agreement, and
+        every claim carries its source URL.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. VERIFICATION ============ -->
+<section id="verification">
+  <h2>Verification</h2>
+
+  <div class="note">
+    <span class="t">convergence_rate is not accuracy</span>
+    Convergence measures whether the agent agrees with itself when asked
+    differently. <strong>A consistently wrong agent scores 100%.</strong>
+    Accuracy does not exist in this project — it requires the human audit — and
+    a test asserts no output file carries a populated <span class="mono">accuracy</span> key.
+  </div>
+
+  <div class="grid g3">
+    <div class="card">
+      <h4>Layer 1 — structural</h4>
+      <div class="stat">2<span class="dim" style="font-size:16px">/63</span></div>
+      <p class="stat-l">violations. Braze MCP <strong>retracted</strong>
+        (apis.io — not a vendor domain). Telegram api_style contradiction
+        flagged.</p>
+    </div>
+    <div class="card">
+      <h4>Layer 2 — second pass</h4>
+      <div class="stat acc">4<span class="dim" style="font-size:16px">/63</span></div>
+      <p class="stat-l">usable readings — <strong>6% coverage</strong>.
+        11 attempted, 7 failed, 52 never
+        reached. 0 promotions, 25 field
+        disagreements. All 59 unverified rows named.</p>
+    </div>
+    <div class="card">
+      <h4>Layer 3 — browser</h4>
+      <div class="stat dim">skipped</div>
+      <p class="stat-l">Deliberately, and recorded. It settles inter-pass
+        disputes; both passes share the extractor whose bias is the finding.
+        The 11-row queue is preserved as a queue that was <em>not run</em>.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="t">Layer 2 was counting attempts as coverage</span>
+    It reported all 11 attempted rows as second-passed — 17%
+    coverage where the corpus has 6%. Attempted is not verified.
+    Corrected to count only usable readings, and to name the failed and
+    never-reached sets separately.
+  </div>
+
+  <div class="note">
+    <span class="t">The 18% pricing-evidence figure is a lower bound</span>
+    Recomputed over the final corpus it is 8 of 48 self-serve rows
+    whose evidence never mentions pricing at all. It is a floor, not a
+    measurement: <strong>keyword presence is not the page stating a tier</strong>,
+    so pages that mention &ldquo;pricing&rdquo; in a nav bar still count as
+    having evidence.
+  </div>
+</section>
+
+<!-- ============ 5. PATTERNS ============ -->
+<section id="patterns">
+  <h2>Patterns</h2>
+
+  <h3>Access tier &times; API breadth</h3>
+  <div class="scroll"><table><tr><th>access tier</th><th class='num'>narrow</th><th class='num'>moderate</th><th class='num'>broad</th><th class='num'>total</th></tr><tr><td class='mono'>self_serve_free</td><td class='num mono'>6</td><td class='num mono'>32</td><td class='num mono'>10</td><td class='num mono strong'>48</td></tr><tr><td class='mono'>paid_plan_required</td><td class='num mono'>0</td><td class='num mono'>2</td><td class='num mono'>1</td><td class='num mono strong'>3</td></tr><tr><td class='mono'>partner_gated</td><td class='num mono'>0</td><td class='num mono'>2</td><td class='num mono'>1</td><td class='num mono strong'>3</td></tr><tr><td class='mono'>no_public_api</td><td class='num mono'>9</td><td class='num mono'>0</td><td class='num mono'>0</td><td class='num mono strong'>9</td></tr><tr class='tot'><td class='mono'>total</td><td class='num mono'>15</td><td class='num mono'>36</td><td class='num mono'>12</td><td class='num mono strong'>63</td></tr></table></div>
+  <p class="caption"><strong>Every <span class="mono">no_public_api</span> row
+    is narrow; every moderate or broad surface reports reachable.</strong>
+    Breadth and access correlate only because the gate is invisible to this
+    method — a documented, broad API looks reachable whether or not a paywall
+    sits in front of it.</p>
+  <p class="caption faint">Every archetype here is keyed partly on access_tier. Hand-checked against vendor pricing pages, that field was wrong on 1 of 3 scoreable self-serve rows (33%), while 4 of 4 gated calls were correct. The sample is 3 scoreable rows, enriched with expected-gated products: it bounds the DIRECTION of the error, not its magnitude. Direction is one-way -- gated products read as self-serve, never the reverse -- so the self-serve archetypes below are a ceiling and the gated ones a floor. The shapes are real; the sizes are not.</p>
+
+  <div class="grid g2" style="margin-top:34px">
+    <div>
+      <h3>Auth methods</h3>
+      <div class="chart-box"><canvas id="cAuth"></canvas>
+        <noscript class="chart-fallback">Chart requires JavaScript.</noscript></div>
+      <p class="caption">OAuth2 appears in nearly every combination. Auth
+        variety is not what makes an app hard to build against — access is.</p>
+    </div>
+    <div>
+      <h3>Category coverage</h3>
+      <div class="chart-box"><canvas id="cCat"></canvas></div>
+      <p class="caption">Three categories sit at 1&ndash;2 rows and cannot
+        support a per-category claim. They are thin because the corpus is thin
+        there, not because the run stopped early.</p>
+    </div>
+    <div>
+      <h3>Blocker families</h3>
+      <div class="chart-box"><canvas id="cBlock"></canvas></div>
+      <p class="caption"><strong>47 of the live rows name no
+        blocker at all.</strong> That silence is the same artefact as the
+        self-serve skew: nothing was found, so nothing was recorded.
+        1 blocker matched no family and is listed by name
+        rather than absorbed.</p>
+    </div>
+    <div>
+      <h3>Confidence</h3>
+      <div class="chart-box"><canvas id="cConf"></canvas></div>
+      <p class="caption">Confidence is computed from retrieved bytes, never
+        asserted by the model. It still does not separate correct from
+        incorrect — that is what the cross-tab null established.</p>
+    </div>
+  </div>
+
+  <h3>Official MCP servers — 7, vendor-domain evidence only</h3>
+  <ul class="plain"><li><span class="mono">ActiveCampaign</span> <a href="https://developers.activecampaign.com" target="_blank" rel="noopener" class="mono faint">https://developers.activecampaign.com</a></li><li><span class="mono">CircleCI</span> <a href="https://circleci.com/docs/guides/toolkit/api-developers-guide" target="_blank" rel="noopener" class="mono faint">https://circleci.com/docs/guides/toolkit/api-developers-guide</a></li><li><span class="mono">ClickUp</span> <a href="https://developer.clickup.com" target="_blank" rel="noopener" class="mono faint">https://developer.clickup.com</a></li><li><span class="mono">Docker Hub</span> <a href="https://docs.docker.com/docker-hub" target="_blank" rel="noopener" class="mono faint">https://docs.docker.com/docker-hub</a></li><li><span class="mono">Etsy</span> <a href="https://www.etsy.com/developers/documentation/getting_started/oauth" target="_blank" rel="noopener" class="mono faint">https://www.etsy.com/developers/documentation/getting_started/oauth</a></li><li><span class="mono">Front</span> <a href="https://dev.frontapp.com/docs/authentication" target="_blank" rel="noopener" class="mono faint">https://dev.frontapp.com/docs/authentication</a></li><li><span class="mono">Zoho CRM</span> <a href="https://www.zoho.com/crm/developer" target="_blank" rel="noopener" class="mono faint">https://www.zoho.com/crm/developer</a></li></ul>
+  <p class="caption">Retracted by the provenance guard:
+    <span class="mono accent-t">Braze</span> — the claim rested on a
+    third-party directory. Both original guards passed; neither asked whether
+    the vendor said it.</p>
+</section>
+
+<!-- ============ 6. DATA TABLE ============ -->
+<section id="data">
+  <h2>The corpus</h2>
+  <div class="note">
+    <span class="t">63 of 100 profiled</span>
+    The run ended on <span class="mono">DailyQuotaExhausted</span> at
+    <span class="mono">196,846/200,000</span> tokens; 11 rows record
+    hitting it. <strong>Every figure on this page is over 63, not 100.</strong>
+    The 9 <span class="mono">RESEARCH FAILED</span> rows are shown
+    as such, not hidden.
+  </div>
+
+  <button class="toggle" id="tblToggle" aria-expanded="false" aria-controls="tableWrap">
+    Show all 63 rows <span class="c">— sortable, filterable</span>
+  </button>
+
+  <div id="tableWrap" hidden>
+    <div class="controls">
+      <input id="q" type="search" placeholder="Search app or blocker…" aria-label="Search">
+      <select id="fCat" aria-label="Category"><option value="">All categories</option></select>
+      <select id="fTier" aria-label="Access tier"><option value="">All tiers</option></select>
+      <select id="fAuth" aria-label="Auth"><option value="">All auth</option></select>
+      <select id="fBuild" aria-label="Buildable"><option value="">All buildability</option></select>
+      <select id="fConf" aria-label="Confidence"><option value="">All confidence</option></select>
+    </div>
+    <p class="caption" id="count" style="margin:0 0 10px"></p>
+    <div class="scroll">
+      <table id="dataTable">
+        <thead><tr>
+          <th data-k="name">app</th>
+          <th data-k="category">category</th>
+          <th data-k="access_tier">tier</th>
+          <th data-k="api_breadth">breadth</th>
+          <th data-k="auth">auth</th>
+          <th data-k="buildable_today">buildable</th>
+          <th data-k="confidence">conf</th>
+          <th>evidence</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7. LESSONS ============ -->
+<section id="lessons">
+  <h2>What the run taught me</h2>
+  <p class="lede two" style="max-width:76ch">One shape runs through all of it:
+    <strong>a signal that exists but nobody acts on</strong>, so the system
+    looks healthy while being wrong. A crash announces itself; a correct warning
+    that changes nothing does not.</p>
+
+  <div class="lesson">
+    <h4>The health probe sent one token</h4>
+    <p>It got a 200 back, so the daily bucket looked fine while being spent. A
+      check that does not resemble the workload measures the check.</p>
+  </div>
+  <div class="lesson">
+    <h4>The provider fallback warned and kept running</h4>
+    <p>A UTF-8 BOM hid <span class="mono">COMPOSIO_API_KEY</span>, and three apps
+      were profiled off DuckDuckGo before anyone noticed. A whole corpus on the
+      wrong evidence source is not a degraded result, it is a different
+      experiment. It now aborts.</p>
+  </div>
+  <div class="lesson">
+    <h4>Confidence let the model assert its own trustworthiness</h4>
+    <p>The column asked the model whether it had read official documentation and
+      believed the answer. It is now computed from bytes actually retrieved.</p>
+  </div>
+  <div class="lesson key">
+    <h4>The findings banner asserted a cause it had not checked</h4>
+    <p>It printed &ldquo;the run stopped on the provider&rsquo;s daily token
+      budget&rdquo; as a hardcoded line while the run was still going. I wrote
+      that one <strong>while fixing the other three</strong>, which is the
+      clearest evidence I have that the shape is easy to reproduce and hard to
+      see.</p>
+  </div>
+  <div class="lesson key">
+    <h4>Braze MCP — the strongest instance</h4>
+    <p>The claim rested on <span class="mono">apis.io</span>, a third-party
+      directory. It produced <strong>no symptom</strong>: the row was
+      well-formed, the guards passed, the URL resolved. It was caught by
+      auditing output, not by debugging. And both guards were
+      <strong>individually correct and jointly insufficient</strong> —
+      fetched-ness is necessary, mentions-MCP is necessary, neither is
+      sufficient, and their conjunction is not sufficient either. Provenance was
+      a third property nothing surfaced until a real row exposed it. There was
+      no signal to convert into a consequence, because the signal did not exist.</p>
+  </div>
+  <div class="lesson">
+    <h4>Unresolved: the deadline instrumentation disagrees with itself</h4>
+    <p>All five deadline hits were in stage <span class="mono">extract</span>.
+      Pass 1&rsquo;s two fired at <span class="mono">600.01s</span> exactly.
+      Pass 2&rsquo;s three recorded <span class="mono">1271.99s</span>,
+      <span class="mono">1400.13s</span> and <span class="mono">1271.86s</span>
+      against the same 600s bound — 2.1&ndash;2.3&times;.
+      <strong>Something is not measuring what it claims.</strong> Not diagnosed.
+      Stated because an unexplained instrumentation discrepancy is worth more
+      visible than buried.</p>
+    <ul class="plain" style="margin-top:10px"><li><span class="mono">salesforce</span> <span class="faint">pass 1 · stage extract</span> <span class="mono accent-t">600.01s</span></li><li><span class="mono">greenhouse</span> <span class="faint">pass 1 · stage extract</span> <span class="mono accent-t">600.01s</span></li><li><span class="mono">telegram</span> <span class="faint">pass 2 · stage extract</span> <span class="mono accent-t">1271.99s</span></li><li><span class="mono">netsuite</span> <span class="faint">pass 2 · stage extract</span> <span class="mono accent-t">1400.13s</span></li><li><span class="mono">braze</span> <span class="faint">pass 2 · stage extract</span> <span class="mono accent-t">1271.86s</span></li></ul>
+  </div>
+</section>
+
+<!-- ============ 8. HOW IT WORKS + LIMITATIONS ============ -->
+<section id="how">
+  <h2>How it works</h2>
+  <div class="pipe">
+    <div class="st"><b>search</b><span>Composio-backed search; refuses to fall
+      back silently</span></div>
+    <div class="st"><b>rank</b><span>official domains first, third-party hosts
+      capped</span></div>
+    <div class="st"><b>fetch</b><span>bounded, cached, thin pages floored</span></div>
+    <div class="st"><b>condense</b><span>scored blocks, not blind
+      truncation</span></div>
+    <div class="st"><b>extract</b><span>strict JSON; model proposes, code
+      disposes</span></div>
+    <div class="st"><b>score</b><span>confidence from retrieved bytes</span></div>
+    <div class="st"><b>layers 1&ndash;3</b><span>downgrade only, never
+      upgrade</span></div>
+  </div>
+  <p class="caption"><strong>Where a human was needed:</strong> the access-tier
+    hand check — only a person reading the vendor&rsquo;s pricing page settles
+    it. <strong>Where one was not available:</strong> the 19-row
+    audit queue, generated (<span class="mono">round(0.3 x 63 rows), floored at 10 (5/stratum), capped at 25</span>) and left
+    unfilled, which is why no accuracy figure exists.</p>
+
+  <h3>Limitations</h3>
+  <ul class="plain">
+    <li><strong>63 of 100 profiled.</strong> The daily token budget ran out.
+      Every figure is over 63.</li>
+    <li><strong>Layer 2 reached 6%.</strong> 4 usable
+      readings; 59 rows have no second reading and are named in
+      <span class="mono">corroboration_summary.json</span>.</li>
+    <li><strong>Layer 3 skipped.</strong> Deliberate, and the budget was gone
+      anyway — both facts recorded rather than one of them.</li>
+    <li><strong>Salesforce excluded from the hand-check rates.</strong> Its
+      research failed, so there was no tier claim to score, and the vendor page
+      that would settle it returned 403.</li>
+    <li><strong>Forced audit apps missing.</strong> Amazon SP-API, PitchBook and
+      Salesforce Commerce Cloud are not in the corpus, so the hardest tier cases
+      went untested. Recorded, not substituted.</li>
+    <li><strong>Design 2, E-signature 1, Scheduling 1.</strong> Too thin for a
+      per-category claim. A corpus weakness, not a scheduling one.</li>
+    <li><strong>9 rows failed research</strong> and carry no
+      findings: <span class="mono faint">Salesforce, Jira, GitHub, Confluence, Coda, Kustomer, Greenhouse, Oracle NetSuite, Mixpanel</span></li>
+  </ul>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div style="margin-bottom:12px">Every figure on this page is read from these
+      artifacts at build time.</div>
+    <a href="data/pass1.validated.json">pass1.validated.json</a>
+    <a href="data/hand_check.json">hand_check.json</a>
+    <a href="data/patterns.json">patterns.json</a>
+    <a href="data/corroboration_summary.json">corroboration_summary.json</a>
+    <a href="data/validation_report.json">validation_report.json</a>
+    <a href="data/hand_check_queue.csv">hand_check_queue.csv</a>
+  </div>
+</footer>
+
+<script type="application/json" id="corpus">[{"name": "Salesforce", "category": "CRM & Sales", "one_liner": "", "auth_methods": ["Unknown"], "access_tier": "no_public_api", "api_style": ["None"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "no", "primary_blocker": "research failed; not assessed", "evidence_urls": ["unresolved://salesforce"], "confidence": "low", "agent_notes": "RESEARCH FAILED: exceeded the 600s per-app deadline in stage 'extract' after 3 document(s), 8 worker(s) in flight", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "HubSpot", "category": "CRM & Sales", "one_liner": "HubSpot is a CRM and sales platform that offers a public REST API with OAuth 2.0 authentication for app integration.", "auth_methods": ["OAuth2", "API Key"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes_with_caveats", "primary_blocker": "Requires a backend service to handle the OAuth flow and token storage before API requests can be made.", "evidence_urls": ["https://developers.hubspot.com/docs/api-reference/auth-oauth-v3/public-token/post-oauth-v3-token", "https://developers.hubspot.com/docs/apps/developer-platform/build-apps/authentication/overview", "https://developers.hubspot.com/docs/apps/developer-platform/build-apps/authentication/scopes"], "confidence": "medium", "agent_notes": "The documents only describe OAuth token endpoints, so breadth is inferred as narrow. No explicit tier requirement is stated, so access tier is assumed self‑serve free.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Pipedrive", "category": "CRM & Sales", "one_liner": "Pipedrive is a cloud-based CRM platform that offers a RESTful API for managing sales pipelines and related data.", "auth_methods": ["API Key", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "broad", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.pipedrive.com/docs/api/v1/Oauth", "https://developers.pipedrive.com/docs/api/v1"], "confidence": "medium", "agent_notes": "The documentation does not explicitly state a paid plan requirement for API access, so the tier is inferred as self‑serve free. API breadth is judged broad based on the extensive list of endpoints referenced in the API reference.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Zoho CRM", "category": "CRM & Sales", "one_liner": "Zoho CRM is a cloud-based CRM platform that provides REST and GraphQL APIs for integrating and automating sales and customer data.", "auth_methods": ["OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST", "GraphQL"], "api_breadth": "moderate", "has_mcp": true, "mcp_evidence_url": "https://www.zoho.com/crm/developer", "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://www.zoho.com/crm/developer/docs/api/v8/oauth-overview.html", "https://www.zoho.com/crm/developer/docs/api/v8/auth-request.html", "https://www.zoho.com/crm/developer"], "confidence": "medium", "agent_notes": "Access tier inferred as free due to lack of explicit paid plan requirement. API breadth judged moderate based on mention of REST and GraphQL APIs. MCP server presence inferred from mention of configuring an MCP server. No explicit endpoint documentation was cited.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Close", "category": "CRM & Sales", "one_liner": "Close is a CRM and sales platform with a REST API for managing leads, contacts, opportunities, and activities.", "auth_methods": ["API Key", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "broad", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developer.close.com/api/overview", "https://developer.close.com/api/overview/http-response-codes"], "confidence": "medium", "agent_notes": "No explicit tier requirement was found; inferred free access. No MCP reference detected.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Copper", "category": "CRM & Sales", "one_liner": "Copper is a CRM platform that offers a public RESTful Developer API for programmatic access to its resources.", "auth_methods": ["API Key", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "broad", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developer.copper.com/introduction/authentication.html", "https://developer.copper.com/introduction/oauth/quickstart.html", "https://developer.copper.com"], "confidence": "medium", "agent_notes": "API key authentication requires a signature header (X-Timestamp, X-Signature) as described in the docs, but the exact signature algorithm details are not fully enumerated. OAuth2 is the preferred method for partner integrations, but no explicit plan tier is mentioned for API access.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Freshsales", "category": "CRM & Sales", "one_liner": "Freshsales is a CRM platform that offers a REST API for managing contacts, leads, deals, and more, authenticated with a unique API key.", "auth_methods": ["API Key"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.freshworks.com/crm/api", "https://www.freshworks.com/crm/pricing", "https://crmsupport.freshworks.com/support/solutions/articles/50000010025-does-freshsales-have-api-request-limits-for-an-account-"], "confidence": "medium", "agent_notes": "Auth uses a custom token header; inferred that API is available on the free plan from the request limits table; no explicit statement of plan granting API access.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Outreach", "category": "CRM & Sales", "one_liner": "Outreach provides a REST API for sales execution platform integration.", "auth_methods": ["OAuth2"], "access_tier": "partner_gated", "api_style": ["REST"], "api_breadth": "broad", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes_with_caveats", "primary_blocker": "API access requires a request/approval process to obtain OAuth credentials", "evidence_urls": ["https://developers.outreach.io", "https://developers.outreach.io/api", "https://developers.outreach.io/api/getting-started"], "confidence": "medium", "agent_notes": "The tier is inferred from the requirement to request access; no explicit plan level is stated.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Salesloft", "category": "CRM & Sales", "one_liner": "Salesloft is a sales engagement platform that offers a public REST API for accessing and managing sales activities.", "auth_methods": ["OAuth2", "API Key"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.salesloft.com/docs/platform/api-basics/oauth-authentication", "https://developers.salesloft.com/docs/platform/api-basics/api-key-authentication", "https://developers.salesloft.com/docs/platform/frontend-integrations/authentication-and-flow"], "confidence": "medium", "agent_notes": "Access tier inferred as self-serve free because no explicit plan requirement is stated in the documents.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Apollo.io", "category": "CRM & Sales", "one_liner": "Apollo.io offers a REST API for accessing CRM and sales data, authenticated via API key or OAuth 2.0.", "auth_methods": ["API Key", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://docs.apollo.io/reference/authentication", "https://docs.apollo.io/docs/use-oauth-20-authorization-flow-to-access-apollo-user-information-partners", "https://docs.apollo.io"], "confidence": "medium", "agent_notes": "Tier not explicitly stated; inferred as free based on lack of plan requirement in docs.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Slack", "category": "Communication", "one_liner": "Slack is a communication platform that offers a public API for building bots, apps, and integrations.", "auth_methods": ["OAuth2", "Bearer Token"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "broad", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://docs.slack.dev/authentication/tokens"], "confidence": "medium", "agent_notes": "The documentation does not explicitly state a paid plan requirement for API access; it appears to be available to all developers via OAuth 2.0. No conflicts were found among the sources. [pipeline: MCP citation was not in the fetched set]", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Microsoft Teams", "category": "Communication", "one_liner": "Microsoft Teams is a collaboration platform that enables chat, meetings, and app integration within Microsoft 365.", "auth_methods": ["OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developer.microsoft.com/en-us/microsoft-teams/tools", "https://learn.microsoft.com/en-us/graph/auth/auth-concepts", "https://learn.microsoft.com/en-us/graph/sdks/choose-authentication-providers"], "confidence": "medium", "agent_notes": "Access tier inferred from free developer subscription; no explicit tier stated.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Discord", "category": "Communication", "one_liner": "Discord is a communication platform that exposes a REST API for bots and OAuth2 user access.", "auth_methods": ["OAuth2", "Bearer Token"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://docs.discord.com/developers/platform/oauth2-and-permissions", "https://docs.discord.com/developers/topics/oauth2", "https://docs.discord.com/developers/reference"], "confidence": "medium", "agent_notes": "The documentation provides a Bot Token and an OAuth2 bearer token for authentication. No explicit mention of a paid tier or admin approval is found; the API is publicly documented and self‑serve. The bot token uses a \"Bot\" prefix rather than \"Bearer\", but the schema only allows \"Bearer Token\" and \"OAuth2\", so both are listed. No Model Context Protocol is referenced.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Zoom", "category": "Communication", "one_liner": "Zoom provides video conferencing and collaboration APIs for developers.", "auth_methods": ["OAuth2", "Basic"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "broad", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.zoom.us/docs/integrations/oauth", "https://developers.zoom.us/docs/internal-apps/s2s-oauth"], "confidence": "medium", "agent_notes": "Breadth inferred from general API description; no explicit tier stated.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Twilio", "category": "Communication", "one_liner": "Twilio offers a cloud communications platform with REST APIs for messaging, voice, video, and other channels.", "auth_methods": ["Basic", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "broad", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://www.twilio.com/docs/iam/oauth-apps/overview", "https://www.twilio.com/docs", "https://www.twilio.com/docs/iam"], "confidence": "high", "agent_notes": "The documentation confirms HTTP Basic auth with API key/secret and OAuth 2.0 support. It also states a free developer plan is available. No mention of a Model Context Protocol server was found. The API reference indicates a broad surface area.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "WhatsApp Business Platform", "category": "Communication", "one_liner": "Enterprise-grade API for messaging and calling on WhatsApp.", "auth_methods": ["OAuth2"], "access_tier": "paid_plan_required", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes_with_caveats", "primary_blocker": "Paid plan required for API usage", "evidence_urls": ["https://developers.facebook.com/docs/whatsapp", "https://developers.facebook.com/docs/whatsapp/pricing"], "confidence": "medium", "agent_notes": "Docs do not explicitly state a paid plan requirement, but pricing indicates per-message charges. API is public and uses OAuth bearer token. No explicit MCP server found.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Telegram", "category": "Communication", "one_liner": "Telegram is a messaging platform that offers public APIs for bots, custom clients, and gateway services.", "auth_methods": ["API Key"], "access_tier": "self_serve_free", "api_style": ["None"], "api_breadth": "broad", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://core.telegram.org/api/auth", "https://core.telegram.org/method/auth.importWebTokenAuthorization", "https://core.telegram.org/api"], "confidence": "medium", "agent_notes": "The authentication mechanism uses api_id and api_hash as API keys; the API is a custom binary protocol rather than REST/GraphQL, so it is classified as \"None\" for style. No tier is explicitly stated, but the documentation indicates free usage. [layer1: R5_CONTRADICTION_STYLE]", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Intercom", "category": "Communication", "one_liner": "Intercom offers a REST API and SDKs for building private or public integrations, using access tokens or OAuth.", "auth_methods": ["Bearer Token", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.intercom.com/docs/build-an-integration/learn-more/authentication", "https://developers.intercom.com/docs/build-an-integration/learn-more/authentication/setting-up-oauth", "https://developers.intercom.com/docs"], "confidence": "medium", "agent_notes": "The documentation does not specify a required paid plan or trial; thus the access tier is inferred as self-serve free. No mention of admin approval or partner gating.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Front", "category": "Communication", "one_liner": "Front is a customer communication platform that offers a Core API for managing conversations, contacts, inboxes, and more.", "auth_methods": ["Bearer Token", "OAuth2", "Basic"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": true, "mcp_evidence_url": "https://dev.frontapp.com/docs/authentication", "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://dev.frontapp.com/docs/authentication", "https://dev.frontapp.com/docs/oauth", "https://dev.frontapp.com/docs/core-api-getting-started"], "confidence": "high", "agent_notes": "Assumed that API tokens are available to free developer accounts; OAuth is required for public integrations; no paid tier explicitly mentioned in the provided docs.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "RingCentral", "category": "Communication", "one_liner": "RingCentral provides authentication for its API using OAuth 2.0 flows.", "auth_methods": ["OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.ringcentral.com/guide/authentication", "https://developers.ringcentral.com/guide/authentication/auth-code-flow", "https://developers.ringcentral.com/guide/authentication/auth-code-pkce-flow"], "confidence": "medium", "agent_notes": "The product description is not present in the supplied documents; the one‑liner focuses on the authentication aspect that is documented.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Jira", "category": "Project Management", "one_liner": "", "auth_methods": ["Unknown"], "access_tier": "no_public_api", "api_style": ["None"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "no", "primary_blocker": "research failed; not assessed", "evidence_urls": ["unresolved://jira"], "confidence": "low", "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 196,990/200,000 used, 3,010 left, this call needed 4,224. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Asana", "category": "Project Management", "one_liner": "Asana is a project‑management platform that exposes a public REST API for programmatic access to tasks, projects, and related resources.", "auth_methods": ["Bearer Token", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.asana.com/docs/authentication", "https://developers.asana.com/docs/oauth", "https://developers.asana.com/docs/getting-started-with-asana-oauth"], "confidence": "high", "agent_notes": "Service Accounts are an Enterprise‑tier feature requiring super‑admin creation, but PATs and OAuth are available to all users. PATs and Service Accounts are bearer tokens used in the Authorization header. OAuth uses the standard authorization‑code grant flow.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "ClickUp", "category": "Project Management", "one_liner": "ClickUp is a project management platform that offers a public REST API for building integrations and apps.", "auth_methods": ["API Key", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": true, "mcp_evidence_url": "https://developer.clickup.com", "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developer.clickup.com/docs/authentication", "https://developer.clickup.com", "https://developer.clickup.com/docs/Getting%20Started"], "confidence": "medium", "agent_notes": "The documentation does not explicitly state a paid plan requirement for API access; rate limits vary by workspace plan but no tier gating is mentioned. The breadth of the API is inferred from the presence of a public spec and several endpoints, but the full surface is not detailed.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Basecamp", "category": "Project Management", "one_liner": "Basecamp is a project‑management platform that offers a public REST API authenticated via OAuth 2.0 (and API keys for some apps).", "auth_methods": ["OAuth2", "API Key"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://basecamp.com/pricing", "https://github.com/basecamp/bc3-api/blob/master/sections/authentication.md", "https://github.com/basecamp/api/blob/master/sections/authentication.md"], "confidence": "high", "agent_notes": "API breadth inferred as moderate based on limited endpoint documentation; full surface not listed in supplied docs.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "GitHub", "category": "Developer Tools", "one_liner": "", "auth_methods": ["Unknown"], "access_tier": "no_public_api", "api_style": ["None"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "no", "primary_blocker": "research failed; not assessed", "evidence_urls": ["unresolved://github"], "confidence": "low", "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 196,708/200,000 used, 3,292 left, this call needed 4,093. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Bitbucket", "category": "Developer Tools", "one_liner": "Bitbucket Cloud is a Git repository hosting service that offers a REST API for integration and automation.", "auth_methods": ["Basic", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "broad", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developer.atlassian.com/cloud/bitbucket", "http://developer.atlassian.com/cloud/bitbucket/rest/intro"], "confidence": "medium", "agent_notes": "Tier not explicitly stated; inferred as free based on lack of paid tier requirement in documentation.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Datadog", "category": "Developer Tools", "one_liner": "Datadog is a cloud‑scale monitoring platform that exposes a REST API for programmatic access.", "auth_methods": ["API Key", "Bearer Token"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://docs.datadoghq.com/api/latest/authentication", "https://docs.datadoghq.com/api/latest.md", "https://docs.datadoghq.com/account_management/personal-access-tokens"], "confidence": "medium", "agent_notes": "Application Key is not represented in the auth_methods enum; mapped to unknown. Service Access Token is a bearer token. No explicit tier info found.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "CircleCI", "category": "Developer Tools", "one_liner": "CircleCI is a cloud-native continuous integration and delivery (CI/CD) platform that enables software teams to automate build, test, and deployment workflows.", "auth_methods": ["Bearer Token", "Basic", "API Key"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": true, "mcp_evidence_url": "https://circleci.com/docs/guides/toolkit/api-developers-guide", "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://support.circleci.com/hc/en-us/articles/360052405651-Using-Basic-Authentication-in-CircleCI-API-Calls", "https://circleci.com/docs/api/v1", "https://circleci.com/docs/guides/toolkit/api-developers-guide"], "confidence": "medium", "agent_notes": "The API is documented as free; no explicit tier statement was found. The Circle-Token header is treated as an API Key. No conflicts among sources.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Docker Hub", "category": "Developer Tools", "one_liner": "Docker Hub is a cloud‑based container registry for storing, managing, and sharing Docker images.", "auth_methods": ["Basic", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": true, "mcp_evidence_url": "https://docs.docker.com/docker-hub", "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://docs.docker.com/reference/api/registry/auth", "https://docs.docker.com/docker-hub", "https://docs.docker.com/subscription"], "confidence": "medium", "agent_notes": "The documentation does not explicitly state which plan grants API access; it only indicates that Docker Hub is available to all users and that subscription plans affect usage limits. Therefore the tier requirement is inferred as free for basic access but may be limited by plan for higher usage.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Box", "category": "Storage & Documents", "one_liner": "Box provides a cloud storage and file sharing platform with APIs for manipulating files, folders, users, and enterprise content management.", "auth_methods": ["OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developer.box.com/guides/authentication", "https://developer.box.com/platform/authentication-methods", "https://developer.box.com/reference/post-oauth2-token"], "confidence": "high", "agent_notes": "Auth methods inferred from OAuth2 flows; JWT and Client Credentials Grant are OAuth2 sub-flows. Access tier inferred from free developer account granting console access. No explicit MCP evidence found.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Airtable", "category": "Storage & Documents", "one_liner": "Airtable is a cloud-based spreadsheet-database hybrid that offers a REST API for programmatic access to bases and tables.", "auth_methods": ["Bearer Token", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "broad", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://airtable.com/developers/web/api/authentication", "https://airtable.com/developers/web/guides/oauth-integrations", "https://airtable.com/developers/web/api/oauth-reference"], "confidence": "medium", "agent_notes": "No explicit mention of a paid plan requirement; inferred that API is available to all users. No indication of admin approval or partner gating.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Confluence", "category": "Storage & Documents", "one_liner": "", "auth_methods": ["Unknown"], "access_tier": "no_public_api", "api_style": ["None"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "no", "primary_blocker": "research failed; not assessed", "evidence_urls": ["unresolved://confluence"], "confidence": "low", "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 196,985/200,000 used, 3,015 left, this call needed 3,970. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Coda", "category": "Storage & Documents", "one_liner": "", "auth_methods": ["Unknown"], "access_tier": "no_public_api", "api_style": ["None"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "no", "primary_blocker": "research failed; not assessed", "evidence_urls": ["unresolved://coda"], "confidence": "low", "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 198,459/200,000 used, 1,541 left, this call needed 4,132. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Braze", "category": "Marketing", "one_liner": "Braze is a customer engagement platform that offers REST APIs for managing user profiles, orchestrating multi‑channel messaging campaigns, and exporting analytics.", "auth_methods": ["Bearer Token", "API Key"], "access_tier": "paid_plan_required", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes_with_caveats", "primary_blocker": "API access requires a paid plan", "evidence_urls": ["https://learning.braze.com/rest-api-basics", "https://apis.io/providers/braze", "https://www.findapi.dev/api/braze"], "confidence": "high", "agent_notes": "API key is used as a bearer token; paid plan explicitly required; no free trial; no admin enablement required. [layer1: has_mcp retracted, evidence was https://apis.io/providers/braze] [layer1: R3_MCP_UNVERIFIED]", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Customer.io", "category": "Marketing", "one_liner": "Customer.io is a marketing automation platform that offers APIs for tracking events, sending messages, and managing customer data.", "auth_methods": ["Basic", "Bearer Token"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://docs.customer.io/integrations/api/track-vs-cdp-api", "https://docs.customer.io/accounts/settings/managing-credentials"], "confidence": "medium", "agent_notes": "Authentication varies by API: Track and Pipelines use Basic auth, App API uses Bearer token. No explicit plan tier requirement noted.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "ActiveCampaign", "category": "Marketing", "one_liner": "ActiveCampaign provides a REST API for managing contacts, deals, and other marketing resources.", "auth_methods": ["API Key"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": true, "mcp_evidence_url": "https://developers.activecampaign.com", "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.activecampaign.com/reference/authentication", "https://developers.activecampaign.com", "https://developers.activecampaign.com/reference"], "confidence": "high", "agent_notes": "OAuth2 is referenced in the App Studio context, but the public API uses an API key via the Api-Token header.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Brevo", "category": "Marketing", "one_liner": "Brevo is a marketing platform that offers a public REST API accessible via API key or OAuth 2.0 authentication.", "auth_methods": ["API Key", "Bearer Token"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.brevo.com/docs/api-key-authentication.mdx", "https://developers.brevo.com/docs/oauth-integration-guide", "https://developers.brevo.com/docs/oauth.mdx"], "confidence": "high", "agent_notes": "API breadth inferred as moderate due to limited endpoint coverage in the provided docs; no explicit statement of full surface. No evidence of admin approval or partner gating required for API access. [pipeline: MCP citation was not in the fetched set]", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Freshdesk", "category": "Customer Support", "one_liner": "Freshdesk is a cloud‑based customer support platform that offers ticketing and helpdesk APIs.", "auth_methods": ["Basic"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.freshdesk.com", "https://developers.freshworks.com/freshdesk-sdk"], "confidence": "medium", "agent_notes": "Tier for API access is not explicitly stated in the documents; inferred as free based on lack of restriction. No evidence of a Model Context Protocol server.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Help Scout", "category": "Customer Support", "one_liner": "Help Scout provides APIs for managing customer support inboxes, conversations, customers, and docs.", "auth_methods": ["OAuth2", "API Key"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developer.helpscout.com/mailbox-api/overview/authentication", "https://developer.helpscout.com", "https://developer.helpscout.com/llms.txt"], "confidence": "medium", "agent_notes": "Access tier inferred as self‑serve free because no paid‑plan requirement is mentioned. API breadth judged moderate due to multiple resource families (Inbox, Docs, Webhooks).", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Gorgias", "category": "Customer Support", "one_liner": "Gorgias is a customer support helpdesk platform that offers a public and private API for accessing account data and integrating with apps.", "auth_methods": ["Basic", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.gorgias.com/reference/authentication", "https://developers.gorgias.com/docs/oauth2-bearer-token", "https://developers.gorgias.com/docs/set-up-oauth2-app-store"], "confidence": "medium", "agent_notes": "Auth for private apps uses HTTP Basic Auth with an API key; public apps require OAuth2. No paid plan or admin approval is mentioned. No MCP server is referenced.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Kustomer", "category": "Customer Support", "one_liner": "", "auth_methods": ["Unknown"], "access_tier": "no_public_api", "api_style": ["None"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "no", "primary_blocker": "research failed; not assessed", "evidence_urls": ["unresolved://kustomer"], "confidence": "low", "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 196,712/200,000 used, 3,288 left, this call needed 3,610. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Crisp", "category": "Customer Support", "one_liner": "Crisp offers a REST and RTM API for customer support, authenticated with a token keypair via Basic Authorization.", "auth_methods": ["Basic"], "access_tier": "self_serve_free", "api_style": ["REST", "Webhooks only"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://docs.crisp.chat/guides/rest-api/authentication", "https://docs.crisp.chat/guides/rtm-api/authentication", "https://docs.crisp.chat/guides/plugins/token-scopes"], "confidence": "medium", "agent_notes": "The documentation does not explicitly state a paid plan requirement; quotas are mentioned but no tier is tied to a plan. RTM API is a WebSocket-based real‑time interface, not labeled as webhooks, but included under \"Webhooks only\" to capture event‑driven behavior.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "BambooHR", "category": "HR & Recruiting", "one_liner": "BambooHR offers a RESTful API for accessing and managing HR data.", "auth_methods": ["OAuth2", "API Key"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://documentation.bamboohr.com/reference", "https://documentation.bamboohr.com/docs/getting-started", "https://documentation.bamboohr.com/docs/sdks"], "confidence": "high", "agent_notes": "Access tier inferred from the statement that read access requires no special permissions; API breadth judged moderate based on the presence of multiple resource families such as employees, account information, and directory endpoints.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Gusto", "category": "HR & Recruiting", "one_liner": "Gusto offers payroll and HR APIs that use OAuth2 and API tokens for authentication.", "auth_methods": ["OAuth2", "API Key"], "access_tier": "partner_gated", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes_with_caveats", "primary_blocker": "Production pre‑approval required from Gusto Partnerships team", "evidence_urls": ["https://docs.gusto.com/app-integrations/docs/oauth2", "https://docs.gusto.com/app-integrations/docs/authentication", "https://docs.gusto.com/embedded-payroll/docs/authentication-and-authorization"], "confidence": "medium", "agent_notes": "Access tier inferred as partner_gated due to pre‑approval requirement; API breadth judged moderate based on available endpoints.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Greenhouse", "category": "HR & Recruiting", "one_liner": "", "auth_methods": ["Unknown"], "access_tier": "no_public_api", "api_style": ["None"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "no", "primary_blocker": "research failed; not assessed", "evidence_urls": ["unresolved://greenhouse"], "confidence": "low", "agent_notes": "RESEARCH FAILED: exceeded the 600s per-app deadline in stage 'extract' after 3 document(s), 8 worker(s) in flight", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Deel", "category": "HR & Recruiting", "one_liner": "Deel provides a REST API for managing contracts, workers, and payments in HR and recruiting workflows.", "auth_methods": ["API Key", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developer.deel.com/api/authentication.mdx", "https://developer.deel.com/api/oauth.mdx", "https://developer.deel.com/api/quickstart.mdx"], "confidence": "medium", "agent_notes": "Auth methods inferred from documentation; no explicit paid tier requirement stated, so assumed free access. No conflict among sources. [pipeline: MCP citation was not in the fetched set]", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Oracle NetSuite", "category": "Finance & Accounting", "one_liner": "", "auth_methods": ["Unknown"], "access_tier": "no_public_api", "api_style": ["None"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "no", "primary_blocker": "research failed; not assessed", "evidence_urls": ["unresolved://netsuite"], "confidence": "low", "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 196,846/200,000 used, 3,154 left, this call needed 4,119. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Brex", "category": "Finance & Accounting", "one_liner": "Brex provides a unified spend platform with corporate cards, expense management, and a RESTful API for finance workflows.", "auth_methods": ["Bearer Token", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "broad", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developer.brex.com/guides/partner_authentication", "https://developer.brex.com/guides/authentication", "https://developer.brex.com"], "confidence": "medium", "agent_notes": "Access tier inferred as self_serve_free because no paid plan is required for customer API use; partner authentication is partner gated but not required for all users. No MCP evidence found.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "BILL", "category": "Finance & Accounting", "one_liner": "BILL provides a REST API for accounts payable and receivable operations, including authentication and session management.", "auth_methods": ["API Key", "Bearer Token"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developer.bill.com/reference/ap-ar-authentication", "https://developer.bill.com/reference", "https://developer.bill.com/reference/login"], "confidence": "high", "agent_notes": "Breadth inferred as narrow due to limited endpoint documentation; further endpoints likely exist but are not shown in the supplied documents.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Expensify", "category": "Finance & Accounting", "one_liner": "Expensify provides enterprise‑grade expense management and integration APIs for importing, exporting, and embedding expense workflows.", "auth_methods": ["Partner/Custom"], "access_tier": "partner_gated", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes_with_caveats", "primary_blocker": "API access requires an enterprise customer agreement; the API is not accepting new applications at this time", "evidence_urls": ["https://www.expensify.com/api-sso.html", "https://www.expensify.com/api.html", "https://www.expensify.com/api-whitelabel.html"], "confidence": "high", "agent_notes": "The tier was inferred from explicit statements that the API is not accepting new applications and that only enterprise customers can integrate. No public or trial access is documented.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Databricks", "category": "Analytics & Data", "one_liner": "Databricks is a unified analytics platform that enables data engineering, data science, and machine learning workloads on cloud infrastructure.", "auth_methods": ["OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://docs.databricks.com/aws/en/dev-tools/auth", "https://docs.databricks.com/aws/en/security/auth", "https://docs.databricks.com/aws/en/dev-tools/auth/oauth-u2m"], "confidence": "medium", "agent_notes": "Tier requirement not explicitly stated in the supplied documents; inferred as self-serve based on lack of paid plan mention.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Looker", "category": "Analytics & Data", "one_liner": "Looker is a data analytics platform that exposes a REST API for managing data, users, and content", "auth_methods": ["OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://docs.cloud.google.com/looker/docs/reference/looker-api/latest/methods/Auth", "https://developers.looker.com/api/getting-started", "https://docs.cloud.google.com/looker/docs/api-auth"], "confidence": "medium", "agent_notes": "Tier inferred as self-serve free because no explicit plan requirement is stated in the documents; product description derived from API documentation context.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Amplitude", "category": "Analytics & Data", "one_liner": "Amplitude is a product analytics platform that provides event tracking, dashboards, and APIs for data analysis.", "auth_methods": ["Basic", "Bearer Token"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://amplitude.com/docs/apis/authentication", "https://amplitude.com/docs/en/apis/authentication", "https://amplitude.com/docs/pricing"], "confidence": "medium", "agent_notes": "The pricing page lists a Free plan but does not explicitly state that API access is included; inferred from the presence of API documentation and key management in the free plan context.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Mixpanel", "category": "Analytics & Data", "one_liner": "", "auth_methods": ["Unknown"], "access_tier": "no_public_api", "api_style": ["None"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "no", "primary_blocker": "research failed; not assessed", "evidence_urls": ["unresolved://mixpanel"], "confidence": "low", "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 196,851/200,000 used, 3,149 left, this call needed 3,320. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Google Analytics 4", "category": "Analytics & Data", "one_liner": "Google Analytics 4 provides web and app analytics data via APIs for reporting, configuration, measurement, and user deletion.", "auth_methods": ["OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.google.com/identity/protocols/oauth2", "https://developers.google.com/analytics/devguides/limits-and-quotas", "https://developers.google.com/analytics/devguides/collection/ga4"], "confidence": "medium", "agent_notes": "Access tier inferred from absence of paid plan requirement in the provided documents; no explicit tier statement found.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Shopify", "category": "E-commerce", "one_liner": "Shopify provides APIs for building apps that integrate with online stores.", "auth_methods": ["OAuth2", "API Key"], "access_tier": "self_serve_free", "api_style": ["REST", "GraphQL"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://shopify.dev/docs/api/usage/authentication", "https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens", "https://shopify.dev/docs/apps/build/authentication-authorization/client-secrets"], "confidence": "medium", "agent_notes": "Auth methods inferred from client credentials and OAuth flows; access tier inferred as free based on lack of paid plan mention.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "BigCommerce", "category": "E-commerce", "one_liner": "BigCommerce is an e-commerce platform that offers REST APIs for store administration and customer authentication.", "auth_methods": ["OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://docs.bigcommerce.com/developer/docs/integrations/apps/guide/auth", "https://docs.bigcommerce.com/developer/api-reference/rest/admin/authentication-apis/current-customer/overview", "https://docs.bigcommerce.com/developer/api-reference/rest/admin/authentication-apis/customer-login-api/overview"], "confidence": "medium", "agent_notes": "No explicit mention of paid plan requirement; API appears publicly available.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Squarespace", "category": "E-commerce", "one_liner": "Squarespace Commerce APIs allow developers to programmatically manage e-commerce features such as inventory, orders, discounts, contacts, analytics, and webhooks for Squarespace merchant sites.", "auth_methods": ["API Key", "OAuth2"], "access_tier": "paid_plan_required", "api_style": ["REST"], "api_breadth": "broad", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes_with_caveats", "primary_blocker": "API access requires a paid Commerce Advanced plan", "evidence_urls": ["https://developers.squarespace.com/commerce-apis/authentication-and-permissions", "https://developers.squarespace.com/commerce-apis/oauth", "https://developers.squarespace.com/commerce-apis/making-requests"], "confidence": "high", "agent_notes": "The documentation explicitly states that API key generation and custom application development are available only with the Commerce Advanced plan, and OAuth is required for Extensions. No mention of a Model Context Protocol server was found.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Etsy", "category": "E-commerce", "one_liner": "Etsy Open API v3 provides REST endpoints for managing shop inventory, sales, and shop data.", "auth_methods": ["API Key", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": true, "mcp_evidence_url": "https://www.etsy.com/developers/documentation/getting_started/oauth", "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://www.etsy.com/developers/documentation/getting_started/oauth", "https://www.etsy.com/developers"], "confidence": "high", "agent_notes": "Access tier inferred as self-serve free because the docs describe a free personal app and no paid plan requirement is mentioned. The need for app registration and review is noted but does not block toolkit creation for the personal app tier.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Calendly", "category": "Scheduling", "one_liner": "Calendly is a scheduling platform that offers a public API for integrating scheduling functionality.", "auth_methods": ["API Key", "OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developer.calendly.com/authentication", "https://developer.calendly.com/creating-an-oauth-app", "https://developer.calendly.com/when-to-choose-between-personal-access-tokens-and-oauth"], "confidence": "medium", "agent_notes": "Assumed PATs function as API keys; no paid tier or MCP mentioned; API breadth inferred as moderate from available endpoints.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Figma", "category": "Design", "one_liner": "Figma is a collaborative design platform that provides a REST API for accessing files, components, and other design assets.", "auth_methods": ["OAuth2", "API Key"], "access_tier": "self_serve_free", "api_style": ["REST", "Webhooks only"], "api_breadth": "moderate", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.figma.com/docs/rest-api/authentication", "https://developers.figma.com/docs/rest-api/oauth-apps", "https://developers.figma.com/docs/rest-api"], "confidence": "medium", "agent_notes": "Plan access tokens require organization admin but are available for any Organization or Enterprise plan; no explicit paid tier is required for basic API usage.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "DocuSign", "category": "E-signature", "one_liner": "DocuSign is a cloud-based e‑signature platform that lets users create, send, and sign documents electronically.", "auth_methods": ["OAuth2"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://developers.docusign.com/platform/auth/jwt", "https://developers.docusign.com/platform/auth/reference/obtain-consent"], "confidence": "medium", "agent_notes": "Only authentication-related documentation was provided; no other API endpoints were referenced, so the breadth assessment is limited to auth endpoints.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}, {"name": "Canva", "category": "Design", "one_liner": "Canva Connect APIs enable developers to authenticate users via OAuth 2.0 and manage access tokens for design integration.", "auth_methods": ["OAuth2", "Basic", "Bearer Token"], "access_tier": "self_serve_free", "api_style": ["REST"], "api_breadth": "narrow", "has_mcp": false, "mcp_evidence_url": null, "buildable_today": "yes", "primary_blocker": null, "evidence_urls": ["https://www.canva.dev/docs/connect/authentication", "https://www.canva.dev/docs/admin/authentication", "https://www.canva.dev/docs/connect/api-reference/authentication"], "confidence": "medium", "agent_notes": "No explicit mention of paid plan or admin approval; inferred that API is publicly available and free. The docs cover OAuth 2.0 Authorization Code flow with PKCE and token introspection, but breadth appears limited to authentication endpoints.", "pass_number": 1, "extracted_by": "openai/gpt-oss-20b"}]</script>
+<script type="application/json" id="charts">{"tier_breadth": {"self_serve_free": {"narrow": 6, "moderate": 32, "broad": 10}, "paid_plan_required": {"narrow": 0, "moderate": 2, "broad": 1}, "partner_gated": {"narrow": 0, "moderate": 2, "broad": 1}, "no_public_api": {"narrow": 9, "moderate": 0, "broad": 0}}, "auth": {"API Key + OAuth2": 17, "OAuth2": 11, "Bearer Token + OAuth2": 6, "Basic + OAuth2": 5, "API Key + Bearer Token": 4, "API Key": 3, "Basic + Bearer Token + OAuth2": 2, "Basic + Bearer Token": 2, "Basic": 2, "API Key + Basic + Bearer Token": 1, "Partner/Custom": 1}, "categories": {"CRM & Sales": 10, "Communication": 10, "Developer Tools": 5, "Customer Support": 5, "Analytics & Data": 5, "Project Management": 4, "Storage & Documents": 4, "Marketing": 4, "HR & Recruiting": 4, "Finance & Accounting": 4, "E-commerce": 4, "Design": 2, "Scheduling": 1, "E-signature": 1}, "blockers": {"partner_or_approval_process": 3, "paid_plan_required": 3}, "confidence": {"low": 9, "medium": 41, "high": 13}}</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function(){
+"use strict";
+var ROWS = JSON.parse(document.getElementById('corpus').textContent);
+var CH   = JSON.parse(document.getElementById('charts').textContent);
+var AC = '#f0a04b', DIM = '#98a2b3', LINE = '#242a35', FG = '#e7ebf2';
+
+/* ---------- charts ---------- */
+function bar(id, labels, data, horizontal){
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (typeof Chart === 'undefined'){
+    el.parentNode.innerHTML = '<div class="chart-fallback">' +
+      labels.map(function(l,i){return l + '  ' + data[i];}).join('<br>') +
+      '</div>';
+    return;
+  }
+  new Chart(el, {
+    type:'bar',
+    data:{labels:labels, datasets:[{data:data, backgroundColor:AC,
+      borderRadius:3, barThickness:'flex', maxBarThickness:26}]},
+    options:{
+      indexAxis: horizontal ? 'y' : 'x',
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:'#11141a',borderColor:LINE,borderWidth:1,
+          titleColor:FG,bodyColor:DIM,padding:10,displayColors:false}},
+      scales:{
+        x:{ticks:{color:DIM,font:{size:11}},grid:{color:LINE,drawTicks:false},
+           border:{color:LINE}},
+        y:{ticks:{color:DIM,font:{size:11}},grid:{color:LINE,drawTicks:false},
+           border:{color:LINE}}
+      }
+    }
+  });
+}
+function top(obj, n){
+  var e = Object.keys(obj).map(function(k){return [k, obj[k]];});
+  e.sort(function(a,b){return b[1]-a[1];});
+  return e.slice(0, n || 99);
+}
+var a = top(CH.auth, 8);
+bar('cAuth', a.map(function(x){return x[0];}), a.map(function(x){return x[1];}), true);
+var c = top(CH.categories);
+bar('cCat', c.map(function(x){return x[0];}), c.map(function(x){return x[1];}), true);
+var b = top(CH.blockers);
+bar('cBlock', b.map(function(x){return x[0].replace(/_/g,' ');}),
+    b.map(function(x){return x[1];}), true);
+bar('cConf', ['high','medium','low'],
+    [CH.confidence.high||0, CH.confidence.medium||0, CH.confidence.low||0], false);
+
+/* ---------- data table ---------- */
+var tbody = document.getElementById('tbody');
+var countEl = document.getElementById('count');
+var sortKey = 'name', sortDir = 1;
+
+function authOf(r){ return (r.auth_methods||[]).slice().sort().join(' + ') || '—'; }
+function failed(r){ return (r.agent_notes||'').indexOf('RESEARCH FAILED') === 0; }
+
+function fill(sel, vals){
+  var el = document.getElementById(sel);
+  vals.sort().forEach(function(v){
+    var o = document.createElement('option'); o.value = v; o.textContent = v;
+    el.appendChild(o);
+  });
+}
+function uniq(fn){
+  var s = {}; ROWS.forEach(function(r){ var v = fn(r); if (v) s[v] = 1; });
+  return Object.keys(s);
+}
+fill('fCat',  uniq(function(r){return r.category;}));
+fill('fTier', uniq(function(r){return r.access_tier;}));
+fill('fAuth', uniq(authOf));
+fill('fBuild',uniq(function(r){return r.buildable_today;}));
+fill('fConf', uniq(function(r){return r.confidence;}));
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function(m){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m];
+  });
+}
+
+function render(){
+  var q = document.getElementById('q').value.toLowerCase();
+  var fc = document.getElementById('fCat').value;
+  var ft = document.getElementById('fTier').value;
+  var fa = document.getElementById('fAuth').value;
+  var fb = document.getElementById('fBuild').value;
+  var ff = document.getElementById('fConf').value;
+
+  var out = ROWS.filter(function(r){
+    if (fc && r.category !== fc) return false;
+    if (ft && r.access_tier !== ft) return false;
+    if (fa && authOf(r) !== fa) return false;
+    if (fb && r.buildable_today !== fb) return false;
+    if (ff && r.confidence !== ff) return false;
+    if (q){
+      var hay = (r.name + ' ' + (r.primary_blocker||'') + ' ' +
+                 (r.one_liner||'')).toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+
+  out.sort(function(x, y){
+    var a = sortKey === 'auth' ? authOf(x) : (x[sortKey] == null ? '' : x[sortKey]);
+    var b = sortKey === 'auth' ? authOf(y) : (y[sortKey] == null ? '' : y[sortKey]);
+    return String(a).localeCompare(String(b)) * sortDir;
+  });
+
+  tbody.innerHTML = out.map(function(r){
+    var url = (r.evidence_urls || [])[0];
+    var ev = url && url.indexOf('http') === 0
+      ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">source</a>'
+      : '<span class="faint">—</span>';
+    var conf = failed(r)
+      ? '<span class="badge failed">FAILED</span>'
+      : '<span class="badge ' + esc(r.confidence) + '">' + esc(r.confidence) + '</span>';
+    return '<tr>' +
+      '<td class="mono">' + esc(r.name) + '</td>' +
+      '<td class="dim">' + esc(r.category) + '</td>' +
+      '<td class="mono">' + esc(r.access_tier) + '</td>' +
+      '<td class="dim">' + esc(r.api_breadth) + '</td>' +
+      '<td class="dim">' + esc(authOf(r)) + '</td>' +
+      '<td class="dim">' + esc(r.buildable_today) + '</td>' +
+      '<td>' + conf + '</td>' +
+      '<td class="ev">' + ev + '</td>' +
+      '</tr>';
+  }).join('');
+
+  countEl.textContent = out.length + ' of ' + ROWS.length + ' rows';
+}
+
+['q','fCat','fTier','fAuth','fBuild','fConf'].forEach(function(id){
+  var el = document.getElementById(id);
+  el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', render);
+});
+
+Array.prototype.forEach.call(
+  document.querySelectorAll('#dataTable th[data-k]'), function(th){
+    th.addEventListener('click', function(){
+      var k = th.getAttribute('data-k');
+      sortDir = (k === sortKey) ? -sortDir : 1;
+      sortKey = k;
+      render();
+    });
+  });
+
+var toggle = document.getElementById('tblToggle');
+var wrap = document.getElementById('tableWrap');
+toggle.addEventListener('click', function(){
+  var open = !wrap.hidden;
+  wrap.hidden = open;
+  toggle.setAttribute('aria-expanded', String(!open));
+  toggle.innerHTML = open
+    ? 'Show all ' + ROWS.length + ' rows <span class="c">— sortable, filterable</span>'
+    : 'Hide table <span class="c">— ' + ROWS.length + ' rows</span>';
+  if (!open) render();
+});
+
+render();
+})();
+</script>
+</body>
+</html>
