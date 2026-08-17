@@ -169,6 +169,149 @@ def summarise(rows: list[dict], traces: list[dict]) -> None:
     print("=" * 66)
 
 
+
+# ---------------------------------------------------------------------------
+# Findings view: the cross-cuts a reviewer asks for
+# ---------------------------------------------------------------------------
+
+# Blockers are free text, so group them by the thing that actually gates access
+# rather than by exact wording. Order matters: the first match wins, and the
+# harder gate should win when a blocker mentions several.
+BLOCKER_GROUPS: list[tuple[str, tuple[str, ...]]] = [
+    ("partner / commercial agreement",
+     ("partner", "commercial agreement", "reseller", "contract", "sales team",
+      "contact sales", "business review")),
+    ("approval / application required",
+     ("approval", "approved", "apply", "application", "review process",
+      "request access", "allowlist", "whitelist", "waitlist")),
+    ("admin / workspace enablement",
+     ("admin", "workspace owner", "tenant", "enable", "provision",
+      "super user", "instance")),
+    ("paid plan required",
+     ("paid", "enterprise", "premium", "pro plan", "subscription", "upgrade",
+      "billing", "higher tier", "plus plan")),
+    ("no public API", ("no public api", "not public", "undocumented",
+                       "no documented", "internal api")),
+    ("scope / permission limits", ("scope", "permission", "read-only",
+                                   "write access", "granular")),
+    ("rate limits / quota", ("rate limit", "quota", "throttl")),
+    ("auth complexity", ("oauth", "jwt", "signature", "hmac", "certificate",
+                         "mutual tls")),
+]
+
+
+def group_blocker(text: str) -> str:
+    low = (text or "").lower()
+    for label, needles in BLOCKER_GROUPS:
+        if any(n in low for n in needles):
+            return label
+    return "other / unclassified"
+
+
+def findings(rows: list[dict], traces: list[dict]) -> None:
+    total = len(rows)
+    print("=" * 74)
+    print(f"FINDINGS  —  {total} of 100 apps profiled")
+    if total < 100:
+        print(f"PARTIAL CORPUS. Every figure below is over {total}, not 100.")
+        # State the reason only when the artifacts show it. Asserting a cause
+        # the data does not evidence is the same error this project keeps
+        # guarding against, just pointed at the reader instead of the schema.
+        quota = [t for t in traces
+                 if "daily token budget" in (t.get("error") or "").lower()]
+        if quota:
+            print(f"Reason: provider daily token budget exhausted "
+                  f"({len(quota)} row(s) hit it).")
+        elif (settings.data_dir / "queue_order.json").exists():
+            print("Run incomplete. The queue was reordered for category "
+                  "coverage (data/queue_order.json).")
+        else:
+            print("Run incomplete; reason not recorded in the trace.")
+    print("=" * 74)
+
+    # ---- coverage ----
+    cats = Counter(r["category"] for r in rows)
+    print("\nPER-CATEGORY COVERAGE")
+    for c, n in sorted(cats.items()):
+        flag = "" if n >= 3 else "   <-- too thin for a per-category claim"
+        print(f"  {c:<24}{n:>3}  {_bar(n, max(cats.values()), 20)}{flag}")
+    print(f"  categories represented   : {len(cats)}/14")
+    print(f"  categories with >=3 rows : {sum(1 for n in cats.values() if n >= 3)}/14")
+
+    # ---- confidence ----
+    conf = Counter(r["confidence"] for r in rows)
+    print("\nCONFIDENCE")
+    for lvl in ("high", "medium", "low"):
+        n = conf.get(lvl, 0)
+        print(f"  {lvl:<8}{n:>3}  {_pct(n, total)}  {_bar(n, total)}")
+
+    # ---- tier x breadth ----
+    print("\nACCESS TIER x API BREADTH")
+    tiers = [t for t, _ in Counter(r["access_tier"] for r in rows).most_common()]
+    breadths = ["narrow", "moderate", "broad"]
+    print(f"  {'':<22}" + "".join(f"{b:>10}" for b in breadths) + f"{'total':>8}")
+    for t in tiers:
+        cells = [sum(1 for r in rows
+                     if r["access_tier"] == t and r["api_breadth"] == b)
+                 for b in breadths]
+        print(f"  {t:<22}" + "".join(f"{c:>10}" for c in cells)
+              + f"{sum(cells):>8}")
+    col = [sum(1 for r in rows if r["api_breadth"] == b) for b in breadths]
+    print(f"  {'total':<22}" + "".join(f"{c:>10}" for c in col) + f"{total:>8}")
+
+    # ---- buildability ----
+    print("\nBUILDABLE TODAY")
+    build = Counter(r["buildable_today"] for r in rows)
+    for k in ("yes", "yes_with_caveats", "no"):
+        print(f"  {k:<20}{build.get(k, 0):>3}  {_pct(build.get(k, 0), total)}"
+              f"  {_bar(build.get(k, 0), total)}")
+
+    # ---- blockers ----
+    blocked = [r for r in rows if (r.get("primary_blocker") or "").strip()]
+    groups = Counter(group_blocker(r["primary_blocker"]) for r in blocked)
+    print(f"\nBLOCKERS, GROUPED  ({len(blocked)} of {total} rows name one)")
+    for g, n in groups.most_common():
+        print(f"  {n:>3}  {g}")
+
+    # ---- MCP ----
+    mcp = [r for r in rows if r.get("has_mcp")]
+    print(f"\nSHIPS AN OFFICIAL MCP SERVER  ({len(mcp)} of {total})")
+    for r in sorted(mcp, key=lambda r: r["name"]):
+        print(f"  - {r['name']:<26} {r.get('mcp_evidence_url') or ''}")
+    if not mcp:
+        print("  none evidenced in the pages fetched "
+              "(absence of evidence, not evidence of absence)")
+
+    # ---- extractor split ----
+    models = Counter(r.get("extracted_by") or "unrecorded" for r in rows)
+    if len(models) > 1:
+        print("\nEXTRACTOR SPLIT")
+        for m, n in models.most_common():
+            print(f"  {m:<28}{n:>3}")
+
+    # ---- deadline clustering ----
+    hits = [t for t in traces if t.get("deadline_hit")]
+    print(f"\nDEADLINE TIMEOUTS  ({len(hits)})")
+    if hits:
+        by_stage = Counter(t.get("stage", "?") for t in hits)
+        by_load = Counter(t.get("workers_in_flight", 0) for t in hits)
+        for st, n in by_stage.most_common():
+            print(f"  stage {st:<12}{n:>3}")
+        print("  by concurrent workers: " + ", ".join(
+            f"{k}->{v}" for k, v in sorted(by_load.items())))
+        for t in hits:
+            print(f"    {t['name']:<24} stage={t.get('stage')} "
+                  f"{t.get('wall_time_s')}s docs={len(t.get('urls_fetched', []))}")
+    else:
+        print("  none")
+
+    # ---- failures ----
+    fails = [r for r in rows if r["agent_notes"].startswith("RESEARCH FAILED")]
+    print(f"\nFAILED ROWS  ({len(fails)})")
+    for r in fails:
+        print(f"  - {r['name']}: {r['agent_notes'][:96]}")
+    print("=" * 74)
+
 def triage(rows: list[dict], traces: list[dict]) -> None:
     """The point of the confidence column: a concrete human review queue."""
     by_name = {t.get("name"): t for t in traces}
@@ -426,6 +569,9 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="toolkit-recon-report")
     p.add_argument("--pass-number", type=int, default=1)
     p.add_argument("--triage", action="store_true", help="print the human review queue")
+    p.add_argument("--findings", action="store_true",
+                   help="coverage, cross-tabs, grouped blockers, MCP list, "
+                        "deadline clustering")
     p.add_argument("--delta", nargs=2, type=int, metavar=("A", "B"),
                    help="compare two passes, e.g. --delta 1 2")
     p.add_argument("--audit", nargs="?", const="audit_queue.csv", default=None,
@@ -463,6 +609,8 @@ def main(argv: list[str] | None = None) -> int:
     rows, traces = _load(args.pass_number)
     if args.triage:
         triage(rows, traces)
+    elif args.findings:
+        findings(rows, traces)
     else:
         summarise(rows, traces)
     return 0
