@@ -50,6 +50,17 @@ class PermanentError(Exception):
     """404 and friends — retrying just wastes everyone's time."""
 
 
+class DailyQuotaExhausted(Exception):
+    """The provider's per-DAY token budget is gone.
+
+    Distinct from a 429 because the remedy is different in kind. A per-minute
+    429 clears in seconds and backoff is exactly right; a per-day cap clears in
+    hours, so retrying it burns the run's remaining time and produces a wall of
+    deadline failures instead of one clear message. This aborts the run with
+    the checkpoint intact so it can be resumed after the reset.
+    """
+
+
 async def with_backoff(fn, *, attempts: int | None = None, base: float = 1.5):
     """Call an async `fn`, retrying only on RetryableError.
 

@@ -10,6 +10,8 @@ from __future__ import annotations
 import asyncio
 import sys
 import time
+
+import pytest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -160,6 +162,73 @@ def test_no_starvation_under_contention():
     # 5 slots x 0.4s window ~= 1.6s; generous ceiling, but far below the
     # unbounded starvation the old implementation allowed.
     assert elapsed < 5.0, f"took {elapsed:.1f}s — starvation regression"
+
+
+def test_cancelled_acquire_does_not_leak_quota():
+    """Regression: a cancelled waiter used to leave its ticket in the queue.
+
+    The scheduler would then admit that ghost, spend its quota on a request
+    nobody was going to make, and every real waiter starved behind it. Three
+    concurrent extractions wedged with 6,691 of 7,600 tokens reserved and
+    nothing running. The leak was permanent and compounding.
+    """
+
+    async def go():
+        lim = TokenRateLimiter(tokens_per_minute=1000, window=30.0, headroom=1.0)
+        await lim.acquire(1000)                      # fill the window
+
+        blocked = asyncio.create_task(lim.acquire(1000))
+        await asyncio.sleep(0.15)                    # let it queue
+        assert lim.stats()["queued"] == 1
+
+        blocked.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await blocked
+
+        return lim.stats()
+
+    stats = asyncio.run(go())
+    assert stats["queued"] == 0, "cancelled ticket was left in the queue"
+    assert stats["in_window"] == 1000, "cancelled waiter must not consume quota"
+
+
+def test_timed_out_acquire_does_not_leak_quota():
+    """Same leak via the max_wait path rather than cancellation."""
+
+    async def go():
+        lim = TokenRateLimiter(tokens_per_minute=1000, window=30.0,
+                               headroom=1.0, max_wait=0.4)
+        await lim.acquire(1000)
+        with pytest.raises(Exception):
+            await lim.acquire(1000)
+        return lim.stats()
+
+    stats = asyncio.run(go())
+    assert stats["queued"] == 0
+    assert stats["in_window"] == 1000
+    assert stats["timeouts"] == 1
+
+
+def test_queue_drains_after_abandoned_waiters():
+    """The end state that matters: real work still gets through."""
+
+    async def go():
+        lim = TokenRateLimiter(tokens_per_minute=1000, window=0.5, headroom=1.0)
+        await lim.acquire(1000)
+
+        ghosts = [asyncio.create_task(lim.acquire(1000)) for _ in range(3)]
+        await asyncio.sleep(0.1)
+        for g in ghosts:
+            g.cancel()
+        await asyncio.gather(*ghosts, return_exceptions=True)
+
+        # A real caller must still be admitted once the window rolls.
+        await asyncio.wait_for(lim.acquire(1000), timeout=5)
+        return lim.stats()
+
+    stats = asyncio.run(go())
+    assert stats["queued"] == 0
+    assert stats["abandoned"] == 3
 
 
 def test_settle_charges_the_difference():

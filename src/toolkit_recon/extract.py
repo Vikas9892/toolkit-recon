@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from typing import Any
 
 import httpx
@@ -19,7 +20,12 @@ from .condense import condense
 from .config import settings
 from .ratelimit import TokenRateLimiter, estimate_tokens
 from .schema import Extraction
-from .throttle import PermanentError, RetryableError, with_backoff
+from .throttle import (
+    DailyQuotaExhausted,
+    PermanentError,
+    RetryableError,
+    with_backoff,
+)
 
 SYSTEM_PASS1 = """\
 You are a research analyst profiling SaaS products for an agent-tooling team.
@@ -101,6 +107,28 @@ SYSTEM_BY_PASS: dict[int, str] = {1: SYSTEM_PASS1, 2: SYSTEM_PASS2, 3: SYSTEM_PA
 
 def system_for(pass_number: int) -> str:
     return SYSTEM_BY_PASS.get(pass_number, SYSTEM_PASS1)
+
+
+_TPD_RE = re.compile(
+    r"Limit\s+(\d+),\s*Used\s+(\d+)(?:,\s*Requested\s+(\d+))?", re.I
+)
+
+
+def _daily_quota_message(body: str) -> str:
+    """Turn the provider's 429 prose into something a human can act on."""
+    m = _TPD_RE.search(body or "")
+    if not m:
+        return f"provider daily token budget exhausted: {body[:200]}"
+    limit, used = int(m.group(1)), int(m.group(2))
+    asked = int(m.group(3)) if m.group(3) else None
+    left = max(0, limit - used)
+    extra = f", this call needed {asked:,}" if asked else ""
+    return (
+        f"daily token budget exhausted: {used:,}/{limit:,} used, {left:,} left"
+        f"{extra}. Retrying will not help until the daily window resets. "
+        f"The checkpoint is intact — re-run with --resume after the reset, or "
+        f"set LLM_MODEL to a model with its own budget."
+    )
 
 
 def strict_schema(model: type[Extraction]) -> dict[str, Any]:
@@ -224,6 +252,11 @@ class Extractor:
                 except httpx.HTTPError as e:
                     raise RetryableError(str(e)) from e
             if r.status_code == 429:
+                # A per-day cap is not a rate to back off from, it is a wall.
+                # Retrying it burns the run's remaining time and buries the
+                # real cause under deadline failures, so surface it instead.
+                if "per day" in r.text.lower() or "tpd" in r.text.lower():
+                    raise DailyQuotaExhausted(_daily_quota_message(r.text))
                 # Trust the server's own guidance over our backoff curve.
                 retry_after = r.headers.get("retry-after")
                 try:

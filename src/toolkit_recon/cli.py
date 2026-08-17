@@ -208,6 +208,11 @@ async def run(args: argparse.Namespace) -> int:
         elif a.slug in done_rows:
             rows.append(AppResearch.model_validate(done_rows[a.slug]))
 
+    if pipe.abort_reason:
+        print("\n" + "!" * 62, file=sys.stderr)
+        print(f"RUN ABORTED: {pipe.abort_reason}", file=sys.stderr)
+        print("!" * 62, file=sys.stderr)
+
     out = write_output(rows, args.pass_number, args.out)
     print(f"\nwrote {len(rows)} rows -> {out}")
     print_summary(rows, time.monotonic() - started, provider.name)

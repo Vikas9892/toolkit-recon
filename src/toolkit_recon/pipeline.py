@@ -20,7 +20,7 @@ from .extract import Extractor
 from .ranking import is_official, rank
 from .schema import AppResearch, AppTrace, FetchedDoc
 from .storage import Checkpoint, TraceLog, save_evidence
-from .throttle import domain_of
+from .throttle import DailyQuotaExhausted, domain_of
 
 
 # Each pass asks differently on purpose. Re-running the same two queries would
@@ -76,6 +76,11 @@ class Pipeline:
         self.sem = asyncio.Semaphore(settings.concurrency)
         self.trace_log = TraceLog()
         self.checkpoint = Checkpoint(pass_number)
+        # Set once the provider's daily budget is gone. Every remaining app
+        # would fail identically, so the run stops rather than manufacturing
+        # 48 low-confidence rows that say nothing about those products.
+        self._aborted = False
+        self.abort_reason: str | None = None
 
     # ---------------- one app ----------------
 
@@ -101,6 +106,19 @@ class Pipeline:
             trace.confidence_reason = "per-app deadline exceeded"
             row = failure_row(app, reason, self.pass_number)
             del e
+        except DailyQuotaExhausted as e:
+            # Not this app's fault and not recoverable by retrying. Record it
+            # honestly and signal the run to stop starting new work.
+            self._aborted = True
+            self.abort_reason = str(e)
+            trace.status = "failed"
+            trace.error = str(e)[:600]
+            trace.final_confidence = "low"
+            trace.confidence_reason = "provider daily token budget exhausted"
+            row = failure_row(app, f"provider daily token budget exhausted: {e}"[:300],
+                              self.pass_number)
+            trace.wall_time_s = round(time.monotonic() - started, 2)
+            return row, trace
         except Exception as e:
             reason = f"{type(e).__name__}: {e}"
             trace.status = "failed"
@@ -252,7 +270,11 @@ class Pipeline:
         results: dict[str, AppResearch] = {}
 
         async def worker(app: AppSpec) -> None:
+            if self._aborted:
+                return  # daily budget gone; do not start new work
             async with self.sem:
+                if self._aborted:
+                    return
                 row, trace = await self.profile_app(app)
             results[app.slug] = row
             await self.trace_log.write(trace)
