@@ -129,9 +129,13 @@ class Pipeline:
             doc.is_official = is_official(hit.url, app.official_domains)
             docs.append(doc)
 
-        good = [d for d in docs if d.ok and d.text]
+        # Thin extractions are archived but excluded from evidence: a nav
+        # shell or cookie wall must not satisfy "official docs reached".
+        good = [d for d in docs if d.ok and len(d.text) >= settings.min_doc_chars]
+        thin = [d for d in docs if d.ok and len(d.text) < settings.min_doc_chars]
         trace.urls_fetched = [d.url for d in good]
         trace.urls_failed = [d.url for d in docs if not d.ok]
+        trace.urls_thin = [d.url for d in thin]
         trace.cache_hits = sum(1 for d in docs if d.from_cache)
         trace.cache_misses = sum(1 for d in docs if not d.from_cache)
         official_reached = sorted(
@@ -152,9 +156,12 @@ class Pipeline:
         )
 
         if not good:
+            detail = "; ".join(
+                f"{d.url} ({d.error or f'{len(d.text)} chars, below threshold'})"
+                for d in docs
+            )
             raise RuntimeError(
-                f"all {len(docs)} candidate URLs failed to fetch: "
-                + "; ".join(f"{d.url} ({d.error})" for d in docs)[:300]
+                f"no usable evidence from {len(docs)} candidate URLs: {detail[:300]}"
             )
 
         # --- 4. extract (structured output) ----------------------------

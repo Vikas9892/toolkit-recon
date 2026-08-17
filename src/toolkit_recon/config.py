@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     concurrency: int = 8
     domain_delay: float = 1.5
     max_docs_per_app: int = 3
+    # A page that extracts to a couple of sentences (nav shell, JS-rendered
+    # body, cookie wall) is not evidence. Counting it would let an empty page
+    # satisfy "official docs reached" and inflate the confidence score.
+    min_doc_chars: int = 250
     max_doc_chars: int = 14_000  # what we archive to data/raw (full evidence)
     request_timeout: float = 120.0
     max_retries: int = 4

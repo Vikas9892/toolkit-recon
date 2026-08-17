@@ -153,6 +153,7 @@ class AppTrace(BaseModel):
     urls_ranked: list[SearchHit] = []
     urls_fetched: list[str] = []
     urls_failed: list[str] = []
+    urls_thin: list[str] = []  # fetched but too short to count as evidence
     cache_hits: int = 0
     cache_misses: int = 0
     official_domains_reached: list[str] = []

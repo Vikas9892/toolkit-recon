@@ -168,6 +168,16 @@ def test_every_app_declares_official_domains():
         assert a.official_domains, f"{a.slug} has no official domains"
 
 
+def test_thin_documents_do_not_count_as_evidence():
+    """A nav shell or cookie wall extracts to a couple of sentences. Counting
+    it would let an empty page satisfy 'official docs reached'."""
+    from toolkit_recon.config import settings
+
+    assert settings.min_doc_chars >= 200
+    tiny = "Authentication" * 3
+    assert len(tiny) < settings.min_doc_chars
+
+
 def test_each_pass_asks_different_questions():
     """A re-check pass that reused pass 1's queries would hit the same cache
     and reproduce the same row, measuring nothing."""
