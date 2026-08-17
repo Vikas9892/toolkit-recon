@@ -133,6 +133,33 @@ def test_promotion_uses_the_weaker_of_the_two_confidences(data_dir):
 # ---------------- progression wiring ----------------
 
 
+def test_checkpoint_never_erases_earlier_progress(tmp_path, monkeypatch):
+    """Regression: a narrow run must not clobber a wide one.
+
+    Loading used to be tied to --resume while writing was not, so a 3-app
+    diagnostic wrote its 3 rows over 52 rows of completed work.
+    """
+    import asyncio
+
+    from toolkit_recon.schema import AppResearch
+    from toolkit_recon.storage import Checkpoint
+
+    monkeypatch.setattr(settings, "checkpoint_dir", tmp_path)
+
+    wide = Checkpoint(1)
+    row = AppResearch.model_validate(_row("Acme"))
+    asyncio.run(wide.record("acme", row))
+    asyncio.run(wide.record("beta", AppResearch.model_validate(_row("Beta"))))
+    assert len(json.loads(wide.path.read_text(encoding="utf-8"))) == 2
+
+    # A second, narrower run that never calls load() explicitly.
+    narrow = Checkpoint(1)
+    asyncio.run(narrow.record("gamma", AppResearch.model_validate(_row("Gamma"))))
+
+    on_disk = json.loads(narrow.path.read_text(encoding="utf-8"))
+    assert set(on_disk) == {"acme", "beta", "gamma"}, "earlier rows were erased"
+
+
 def test_progression_reports_records_but_withholds_accuracy(data_dir):
     _write(data_dir, "pass1.json", [_row("Acme", confidence="high"),
                                     _row("Beta", confidence="medium")])

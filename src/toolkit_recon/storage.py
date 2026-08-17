@@ -85,14 +85,27 @@ class Checkpoint:
         self.path = settings.checkpoint_dir / f"pass{pass_number}.checkpoint.json"
         self._rows: dict[str, dict] = {}
         self._lock = asyncio.Lock()
+        # Always adopt what is already on disk, even when the caller did not
+        # ask to resume. A checkpoint a narrower run can erase is not a
+        # checkpoint: a 3-app diagnostic once wrote its 3 rows over 52 rows of
+        # completed work, because loading was tied to the --resume flag while
+        # writing was not. Reading is now unconditional; --resume only decides
+        # whether completed apps are SKIPPED, never whether they are KEPT.
+        self._existing = self._read()
+        self._rows.update(self._existing)
+
+    def _read(self) -> dict[str, dict]:
+        if not self.path.exists():
+            return {}
+        try:
+            data = json.loads(self.path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return {}
+        return data if isinstance(data, dict) else {}
 
     def load(self) -> dict[str, dict]:
-        if self.path.exists():
-            try:
-                self._rows = json.loads(self.path.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
-                self._rows = {}
-        return dict(self._rows)
+        """Rows already completed for this pass. Safe to call at any time."""
+        return dict(self._existing)
 
     async def record(self, slug: str, row: AppResearch) -> None:
         async with self._lock:
