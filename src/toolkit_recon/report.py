@@ -38,6 +38,26 @@ def _load(pass_number: int) -> tuple[list[dict], list[dict]]:
     return rows, list(latest.values())
 
 
+def _snapshot(pass_number: int) -> Path:
+    """Materialise pass{N}.json from the checkpoint, in corpus order.
+
+    The pipeline only writes its output file at the end of a run. A run that is
+    still going -- or that was killed -- leaves results in the checkpoint only,
+    which cannot be committed or inspected as a deliverable. This closes that
+    gap without touching the pipeline.
+    """
+    from .apps import APPS
+
+    ckpt = settings.checkpoint_dir / f"pass{pass_number}.checkpoint.json"
+    if not ckpt.exists():
+        raise SystemExit(f"missing {ckpt}")
+    done = json.loads(ckpt.read_text(encoding="utf-8"))
+    rows = [done[a.slug] for a in APPS if a.slug in done]
+    out = settings.data_dir / f"pass{pass_number}.json"
+    out.write_text(json.dumps(rows, indent=2, ensure_ascii=False), encoding="utf-8")
+    return out
+
+
 def _bar(n: int, total: int, width: int = 34) -> str:
     if not total:
         return ""
@@ -411,7 +431,16 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--audit", nargs="?", const="audit_queue.csv", default=None,
                    metavar="CSV",
                    help="score a completed audit CSV -> data/human_audit.json")
+    p.add_argument("--snapshot", action="store_true",
+                   help="write pass{N}.json from the checkpoint without running "
+                        "the pipeline, so partial results can be inspected and "
+                        "committed while a run is still going")
     args = p.parse_args(argv)
+
+    if args.snapshot:
+        out = _snapshot(args.pass_number)
+        print(f"wrote {out}")
+        return 0
 
     if args.audit:
         csv_path = Path(args.audit)

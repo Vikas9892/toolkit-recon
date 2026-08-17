@@ -1,0 +1,741 @@
+[
+  {
+    "name": "Salesforce",
+    "category": "CRM & Sales",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://salesforce"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: exceeded the 600s per-app deadline in stage 'extract' after 3 document(s), 8 worker(s) in flight",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "HubSpot",
+    "category": "CRM & Sales",
+    "one_liner": "HubSpot is a CRM and sales platform that offers a public REST API with OAuth 2.0 authentication for app integration.",
+    "auth_methods": [
+      "OAuth2",
+      "API Key"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes_with_caveats",
+    "primary_blocker": "Requires a backend service to handle the OAuth flow and token storage before API requests can be made.",
+    "evidence_urls": [
+      "https://developers.hubspot.com/docs/api-reference/auth-oauth-v3/public-token/post-oauth-v3-token",
+      "https://developers.hubspot.com/docs/apps/developer-platform/build-apps/authentication/overview",
+      "https://developers.hubspot.com/docs/apps/developer-platform/build-apps/authentication/scopes"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The documents only describe OAuth token endpoints, so breadth is inferred as narrow. No explicit tier requirement is stated, so access tier is assumed self‑serve free.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Pipedrive",
+    "category": "CRM & Sales",
+    "one_liner": "Pipedrive is a cloud-based CRM platform that offers a RESTful API for managing sales pipelines and related data.",
+    "auth_methods": [
+      "API Key",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "broad",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.pipedrive.com/docs/api/v1/Oauth",
+      "https://developers.pipedrive.com/docs/api/v1"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The documentation does not explicitly state a paid plan requirement for API access, so the tier is inferred as self‑serve free. API breadth is judged broad based on the extensive list of endpoints referenced in the API reference.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Zoho CRM",
+    "category": "CRM & Sales",
+    "one_liner": "Zoho CRM is a cloud-based CRM platform that provides REST and GraphQL APIs for integrating and automating sales and customer data.",
+    "auth_methods": [
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST",
+      "GraphQL"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": true,
+    "mcp_evidence_url": "https://www.zoho.com/crm/developer",
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://www.zoho.com/crm/developer/docs/api/v8/oauth-overview.html",
+      "https://www.zoho.com/crm/developer/docs/api/v8/auth-request.html",
+      "https://www.zoho.com/crm/developer"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Access tier inferred as free due to lack of explicit paid plan requirement. API breadth judged moderate based on mention of REST and GraphQL APIs. MCP server presence inferred from mention of configuring an MCP server. No explicit endpoint documentation was cited.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Close",
+    "category": "CRM & Sales",
+    "one_liner": "Close is a CRM and sales platform with a REST API for managing leads, contacts, opportunities, and activities.",
+    "auth_methods": [
+      "API Key",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "broad",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developer.close.com/api/overview",
+      "https://developer.close.com/api/overview/http-response-codes"
+    ],
+    "confidence": "medium",
+    "agent_notes": "No explicit tier requirement was found; inferred free access. No MCP reference detected.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Copper",
+    "category": "CRM & Sales",
+    "one_liner": "Copper is a CRM platform that offers a public RESTful Developer API for programmatic access to its resources.",
+    "auth_methods": [
+      "API Key",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "broad",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developer.copper.com/introduction/authentication.html",
+      "https://developer.copper.com/introduction/oauth/quickstart.html",
+      "https://developer.copper.com"
+    ],
+    "confidence": "medium",
+    "agent_notes": "API key authentication requires a signature header (X-Timestamp, X-Signature) as described in the docs, but the exact signature algorithm details are not fully enumerated. OAuth2 is the preferred method for partner integrations, but no explicit plan tier is mentioned for API access.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Freshsales",
+    "category": "CRM & Sales",
+    "one_liner": "Freshsales is a CRM platform that offers a REST API for managing contacts, leads, deals, and more, authenticated with a unique API key.",
+    "auth_methods": [
+      "API Key"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.freshworks.com/crm/api",
+      "https://www.freshworks.com/crm/pricing",
+      "https://crmsupport.freshworks.com/support/solutions/articles/50000010025-does-freshsales-have-api-request-limits-for-an-account-"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Auth uses a custom token header; inferred that API is available on the free plan from the request limits table; no explicit statement of plan granting API access.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Outreach",
+    "category": "CRM & Sales",
+    "one_liner": "Outreach provides a REST API for sales execution platform integration.",
+    "auth_methods": [
+      "OAuth2"
+    ],
+    "access_tier": "partner_gated",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "broad",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes_with_caveats",
+    "primary_blocker": "API access requires a request/approval process to obtain OAuth credentials",
+    "evidence_urls": [
+      "https://developers.outreach.io",
+      "https://developers.outreach.io/api",
+      "https://developers.outreach.io/api/getting-started"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The tier is inferred from the requirement to request access; no explicit plan level is stated.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Salesloft",
+    "category": "CRM & Sales",
+    "one_liner": "Salesloft is a sales engagement platform that offers a public REST API for accessing and managing sales activities.",
+    "auth_methods": [
+      "OAuth2",
+      "API Key"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.salesloft.com/docs/platform/api-basics/oauth-authentication",
+      "https://developers.salesloft.com/docs/platform/api-basics/api-key-authentication",
+      "https://developers.salesloft.com/docs/platform/frontend-integrations/authentication-and-flow"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Access tier inferred as self-serve free because no explicit plan requirement is stated in the documents.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Apollo.io",
+    "category": "CRM & Sales",
+    "one_liner": "Apollo.io offers a REST API for accessing CRM and sales data, authenticated via API key or OAuth 2.0.",
+    "auth_methods": [
+      "API Key",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://docs.apollo.io/reference/authentication",
+      "https://docs.apollo.io/docs/use-oauth-20-authorization-flow-to-access-apollo-user-information-partners",
+      "https://docs.apollo.io"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Tier not explicitly stated; inferred as free based on lack of plan requirement in docs.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Slack",
+    "category": "Communication",
+    "one_liner": "Slack is a communication platform that offers a public API for building bots, apps, and integrations.",
+    "auth_methods": [
+      "OAuth2",
+      "Bearer Token"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "broad",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://docs.slack.dev/authentication/tokens"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The documentation does not explicitly state a paid plan requirement for API access; it appears to be available to all developers via OAuth 2.0. No conflicts were found among the sources. [pipeline: MCP citation was not in the fetched set]",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Microsoft Teams",
+    "category": "Communication",
+    "one_liner": "Microsoft Teams is a collaboration platform that enables chat, meetings, and app integration within Microsoft 365.",
+    "auth_methods": [
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developer.microsoft.com/en-us/microsoft-teams/tools",
+      "https://learn.microsoft.com/en-us/graph/auth/auth-concepts",
+      "https://learn.microsoft.com/en-us/graph/sdks/choose-authentication-providers"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Access tier inferred from free developer subscription; no explicit tier stated.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Discord",
+    "category": "Communication",
+    "one_liner": "Discord is a communication platform that exposes a REST API for bots and OAuth2 user access.",
+    "auth_methods": [
+      "OAuth2",
+      "Bearer Token"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://docs.discord.com/developers/platform/oauth2-and-permissions",
+      "https://docs.discord.com/developers/topics/oauth2",
+      "https://docs.discord.com/developers/reference"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The documentation provides a Bot Token and an OAuth2 bearer token for authentication. No explicit mention of a paid tier or admin approval is found; the API is publicly documented and self‑serve. The bot token uses a \"Bot\" prefix rather than \"Bearer\", but the schema only allows \"Bearer Token\" and \"OAuth2\", so both are listed. No Model Context Protocol is referenced.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Zoom",
+    "category": "Communication",
+    "one_liner": "Zoom provides video conferencing and collaboration APIs for developers.",
+    "auth_methods": [
+      "OAuth2",
+      "Basic"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "broad",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.zoom.us/docs/integrations/oauth",
+      "https://developers.zoom.us/docs/internal-apps/s2s-oauth"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Breadth inferred from general API description; no explicit tier stated.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Twilio",
+    "category": "Communication",
+    "one_liner": "Twilio offers a cloud communications platform with REST APIs for messaging, voice, video, and other channels.",
+    "auth_methods": [
+      "Basic",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "broad",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://www.twilio.com/docs/iam/oauth-apps/overview",
+      "https://www.twilio.com/docs",
+      "https://www.twilio.com/docs/iam"
+    ],
+    "confidence": "high",
+    "agent_notes": "The documentation confirms HTTP Basic auth with API key/secret and OAuth 2.0 support. It also states a free developer plan is available. No mention of a Model Context Protocol server was found. The API reference indicates a broad surface area.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "WhatsApp Business Platform",
+    "category": "Communication",
+    "one_liner": "Enterprise-grade API for messaging and calling on WhatsApp.",
+    "auth_methods": [
+      "OAuth2"
+    ],
+    "access_tier": "paid_plan_required",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes_with_caveats",
+    "primary_blocker": "Paid plan required for API usage",
+    "evidence_urls": [
+      "https://developers.facebook.com/docs/whatsapp",
+      "https://developers.facebook.com/docs/whatsapp/pricing"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Docs do not explicitly state a paid plan requirement, but pricing indicates per-message charges. API is public and uses OAuth bearer token. No explicit MCP server found.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Telegram",
+    "category": "Communication",
+    "one_liner": "Telegram is a messaging platform that offers public APIs for bots, custom clients, and gateway services.",
+    "auth_methods": [
+      "API Key"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "broad",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://core.telegram.org/api/auth",
+      "https://core.telegram.org/method/auth.importWebTokenAuthorization",
+      "https://core.telegram.org/api"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The authentication mechanism uses api_id and api_hash as API keys; the API is a custom binary protocol rather than REST/GraphQL, so it is classified as \"None\" for style. No tier is explicitly stated, but the documentation indicates free usage.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Intercom",
+    "category": "Communication",
+    "one_liner": "Intercom offers a REST API and SDKs for building private or public integrations, using access tokens or OAuth.",
+    "auth_methods": [
+      "Bearer Token",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.intercom.com/docs/build-an-integration/learn-more/authentication",
+      "https://developers.intercom.com/docs/build-an-integration/learn-more/authentication/setting-up-oauth",
+      "https://developers.intercom.com/docs"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The documentation does not specify a required paid plan or trial; thus the access tier is inferred as self-serve free. No mention of admin approval or partner gating.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Front",
+    "category": "Communication",
+    "one_liner": "Front is a customer communication platform that offers a Core API for managing conversations, contacts, inboxes, and more.",
+    "auth_methods": [
+      "Bearer Token",
+      "OAuth2",
+      "Basic"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": true,
+    "mcp_evidence_url": "https://dev.frontapp.com/docs/authentication",
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://dev.frontapp.com/docs/authentication",
+      "https://dev.frontapp.com/docs/oauth",
+      "https://dev.frontapp.com/docs/core-api-getting-started"
+    ],
+    "confidence": "high",
+    "agent_notes": "Assumed that API tokens are available to free developer accounts; OAuth is required for public integrations; no paid tier explicitly mentioned in the provided docs.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "RingCentral",
+    "category": "Communication",
+    "one_liner": "RingCentral provides authentication for its API using OAuth 2.0 flows.",
+    "auth_methods": [
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.ringcentral.com/guide/authentication",
+      "https://developers.ringcentral.com/guide/authentication/auth-code-flow",
+      "https://developers.ringcentral.com/guide/authentication/auth-code-pkce-flow"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The product description is not present in the supplied documents; the one‑liner focuses on the authentication aspect that is documented.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Asana",
+    "category": "Project Management",
+    "one_liner": "Asana is a project‑management platform that exposes a public REST API for programmatic access to tasks, projects, and related resources.",
+    "auth_methods": [
+      "Bearer Token",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.asana.com/docs/authentication",
+      "https://developers.asana.com/docs/oauth",
+      "https://developers.asana.com/docs/getting-started-with-asana-oauth"
+    ],
+    "confidence": "high",
+    "agent_notes": "Service Accounts are an Enterprise‑tier feature requiring super‑admin creation, but PATs and OAuth are available to all users. PATs and Service Accounts are bearer tokens used in the Authorization header. OAuth uses the standard authorization‑code grant flow.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Bitbucket",
+    "category": "Developer Tools",
+    "one_liner": "Bitbucket Cloud is a Git repository hosting service that offers a REST API for integration and automation.",
+    "auth_methods": [
+      "Basic",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "broad",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developer.atlassian.com/cloud/bitbucket",
+      "http://developer.atlassian.com/cloud/bitbucket/rest/intro"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Tier not explicitly stated; inferred as free based on lack of paid tier requirement in documentation.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "ActiveCampaign",
+    "category": "Marketing",
+    "one_liner": "ActiveCampaign provides a REST API for managing contacts, deals, and other marketing resources.",
+    "auth_methods": [
+      "API Key"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": true,
+    "mcp_evidence_url": "https://developers.activecampaign.com",
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.activecampaign.com/reference/authentication",
+      "https://developers.activecampaign.com",
+      "https://developers.activecampaign.com/reference"
+    ],
+    "confidence": "high",
+    "agent_notes": "OAuth2 is referenced in the App Studio context, but the public API uses an API key via the Api-Token header.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Crisp",
+    "category": "Customer Support",
+    "one_liner": "Crisp offers a REST and RTM API for customer support, authenticated with a token keypair via Basic Authorization.",
+    "auth_methods": [
+      "Basic"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST",
+      "Webhooks only"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://docs.crisp.chat/guides/rest-api/authentication",
+      "https://docs.crisp.chat/guides/rtm-api/authentication",
+      "https://docs.crisp.chat/guides/plugins/token-scopes"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The documentation does not explicitly state a paid plan requirement; quotas are mentioned but no tier is tied to a plan. RTM API is a WebSocket-based real‑time interface, not labeled as webhooks, but included under \"Webhooks only\" to capture event‑driven behavior.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "BambooHR",
+    "category": "HR & Recruiting",
+    "one_liner": "BambooHR offers a RESTful API for accessing and managing HR data.",
+    "auth_methods": [
+      "OAuth2",
+      "API Key"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://documentation.bamboohr.com/reference",
+      "https://documentation.bamboohr.com/docs/getting-started",
+      "https://documentation.bamboohr.com/docs/sdks"
+    ],
+    "confidence": "high",
+    "agent_notes": "Access tier inferred from the statement that read access requires no special permissions; API breadth judged moderate based on the presence of multiple resource families such as employees, account information, and directory endpoints.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "BILL",
+    "category": "Finance & Accounting",
+    "one_liner": "BILL provides a REST API for accounts payable and receivable operations, including authentication and session management.",
+    "auth_methods": [
+      "API Key",
+      "Bearer Token"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developer.bill.com/reference/ap-ar-authentication",
+      "https://developer.bill.com/reference",
+      "https://developer.bill.com/reference/login"
+    ],
+    "confidence": "high",
+    "agent_notes": "Breadth inferred as narrow due to limited endpoint documentation; further endpoints likely exist but are not shown in the supplied documents.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Amplitude",
+    "category": "Analytics & Data",
+    "one_liner": "Amplitude is a product analytics platform that provides event tracking, dashboards, and APIs for data analysis.",
+    "auth_methods": [
+      "Basic",
+      "Bearer Token"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://amplitude.com/docs/apis/authentication",
+      "https://amplitude.com/docs/en/apis/authentication",
+      "https://amplitude.com/docs/pricing"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The pricing page lists a Free plan but does not explicitly state that API access is included; inferred from the presence of API documentation and key management in the free plan context.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "BigCommerce",
+    "category": "E-commerce",
+    "one_liner": "BigCommerce is an e-commerce platform that offers REST APIs for store administration and customer authentication.",
+    "auth_methods": [
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://docs.bigcommerce.com/developer/docs/integrations/apps/guide/auth",
+      "https://docs.bigcommerce.com/developer/api-reference/rest/admin/authentication-apis/current-customer/overview",
+      "https://docs.bigcommerce.com/developer/api-reference/rest/admin/authentication-apis/customer-login-api/overview"
+    ],
+    "confidence": "medium",
+    "agent_notes": "No explicit mention of paid plan requirement; API appears publicly available.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  }
+]

@@ -1,0 +1,348 @@
+{
+  "strategy": "category_coverage_round_robin",
+  "reason": "daily token budget will not cover the full corpus; queue reordered so every category reaches a minimum viable count before any category gets an extra app",
+  "min_viable_per_category": 4,
+  "already_completed_by_category": {
+    "CRM & Sales": 10,
+    "Communication": 10
+  },
+  "queue_length": 80,
+  "queue": [
+    {
+      "slug": "amplitude",
+      "category": "Analytics & Data"
+    },
+    {
+      "slug": "crisp",
+      "category": "Customer Support"
+    },
+    {
+      "slug": "canva",
+      "category": "Design"
+    },
+    {
+      "slug": "bitbucket",
+      "category": "Developer Tools"
+    },
+    {
+      "slug": "bigcommerce",
+      "category": "E-commerce"
+    },
+    {
+      "slug": "docusign",
+      "category": "E-signature"
+    },
+    {
+      "slug": "bill_com",
+      "category": "Finance & Accounting"
+    },
+    {
+      "slug": "bamboohr",
+      "category": "HR & Recruiting"
+    },
+    {
+      "slug": "activecampaign",
+      "category": "Marketing"
+    },
+    {
+      "slug": "asana",
+      "category": "Project Management"
+    },
+    {
+      "slug": "calendly",
+      "category": "Scheduling"
+    },
+    {
+      "slug": "airtable",
+      "category": "Storage & Documents"
+    },
+    {
+      "slug": "databricks",
+      "category": "Analytics & Data"
+    },
+    {
+      "slug": "freshdesk",
+      "category": "Customer Support"
+    },
+    {
+      "slug": "figma",
+      "category": "Design"
+    },
+    {
+      "slug": "circleci",
+      "category": "Developer Tools"
+    },
+    {
+      "slug": "etsy",
+      "category": "E-commerce"
+    },
+    {
+      "slug": "brex",
+      "category": "Finance & Accounting"
+    },
+    {
+      "slug": "deel",
+      "category": "HR & Recruiting"
+    },
+    {
+      "slug": "braze",
+      "category": "Marketing"
+    },
+    {
+      "slug": "basecamp",
+      "category": "Project Management"
+    },
+    {
+      "slug": "box",
+      "category": "Storage & Documents"
+    },
+    {
+      "slug": "google_analytics",
+      "category": "Analytics & Data"
+    },
+    {
+      "slug": "gorgias",
+      "category": "Customer Support"
+    },
+    {
+      "slug": "datadog",
+      "category": "Developer Tools"
+    },
+    {
+      "slug": "shopify",
+      "category": "E-commerce"
+    },
+    {
+      "slug": "expensify",
+      "category": "Finance & Accounting"
+    },
+    {
+      "slug": "greenhouse",
+      "category": "HR & Recruiting"
+    },
+    {
+      "slug": "brevo",
+      "category": "Marketing"
+    },
+    {
+      "slug": "clickup",
+      "category": "Project Management"
+    },
+    {
+      "slug": "coda",
+      "category": "Storage & Documents"
+    },
+    {
+      "slug": "looker",
+      "category": "Analytics & Data"
+    },
+    {
+      "slug": "help_scout",
+      "category": "Customer Support"
+    },
+    {
+      "slug": "docker_hub",
+      "category": "Developer Tools"
+    },
+    {
+      "slug": "squarespace",
+      "category": "E-commerce"
+    },
+    {
+      "slug": "netsuite",
+      "category": "Finance & Accounting"
+    },
+    {
+      "slug": "gusto",
+      "category": "HR & Recruiting"
+    },
+    {
+      "slug": "customer_io",
+      "category": "Marketing"
+    },
+    {
+      "slug": "jira",
+      "category": "Project Management"
+    },
+    {
+      "slug": "confluence",
+      "category": "Storage & Documents"
+    },
+    {
+      "slug": "mixpanel",
+      "category": "Analytics & Data"
+    },
+    {
+      "slug": "kustomer",
+      "category": "Customer Support"
+    },
+    {
+      "slug": "github",
+      "category": "Developer Tools"
+    },
+    {
+      "slug": "woocommerce",
+      "category": "E-commerce"
+    },
+    {
+      "slug": "plaid",
+      "category": "Finance & Accounting"
+    },
+    {
+      "slug": "lever",
+      "category": "HR & Recruiting"
+    },
+    {
+      "slug": "iterable",
+      "category": "Marketing"
+    },
+    {
+      "slug": "linear",
+      "category": "Project Management"
+    },
+    {
+      "slug": "dropbox",
+      "category": "Storage & Documents"
+    },
+    {
+      "slug": "power_bi",
+      "category": "Analytics & Data"
+    },
+    {
+      "slug": "zendesk",
+      "category": "Customer Support"
+    },
+    {
+      "slug": "gitlab",
+      "category": "Developer Tools"
+    },
+    {
+      "slug": "quickbooks",
+      "category": "Finance & Accounting"
+    },
+    {
+      "slug": "rippling",
+      "category": "HR & Recruiting"
+    },
+    {
+      "slug": "klaviyo",
+      "category": "Marketing"
+    },
+    {
+      "slug": "monday",
+      "category": "Project Management"
+    },
+    {
+      "slug": "google_drive",
+      "category": "Storage & Documents"
+    },
+    {
+      "slug": "snowflake",
+      "category": "Analytics & Data"
+    },
+    {
+      "slug": "zoho_desk",
+      "category": "Customer Support"
+    },
+    {
+      "slug": "grafana_cloud",
+      "category": "Developer Tools"
+    },
+    {
+      "slug": "ramp",
+      "category": "Finance & Accounting"
+    },
+    {
+      "slug": "workday",
+      "category": "HR & Recruiting"
+    },
+    {
+      "slug": "mailchimp",
+      "category": "Marketing"
+    },
+    {
+      "slug": "notion",
+      "category": "Project Management"
+    },
+    {
+      "slug": "google_sheets",
+      "category": "Storage & Documents"
+    },
+    {
+      "slug": "tableau",
+      "category": "Analytics & Data"
+    },
+    {
+      "slug": "netlify",
+      "category": "Developer Tools"
+    },
+    {
+      "slug": "stripe",
+      "category": "Finance & Accounting"
+    },
+    {
+      "slug": "marketo",
+      "category": "Marketing"
+    },
+    {
+      "slug": "smartsheet",
+      "category": "Project Management"
+    },
+    {
+      "slug": "onedrive",
+      "category": "Storage & Documents"
+    },
+    {
+      "slug": "new_relic",
+      "category": "Developer Tools"
+    },
+    {
+      "slug": "xero",
+      "category": "Finance & Accounting"
+    },
+    {
+      "slug": "segment",
+      "category": "Marketing"
+    },
+    {
+      "slug": "trello",
+      "category": "Project Management"
+    },
+    {
+      "slug": "pagerduty",
+      "category": "Developer Tools"
+    },
+    {
+      "slug": "sendgrid",
+      "category": "Marketing"
+    },
+    {
+      "slug": "wrike",
+      "category": "Project Management"
+    },
+    {
+      "slug": "sentry",
+      "category": "Developer Tools"
+    },
+    {
+      "slug": "vercel",
+      "category": "Developer Tools"
+    }
+  ],
+  "projected_if_all_complete": {
+    "Analytics & Data": 8,
+    "CRM & Sales": 10,
+    "Communication": 10,
+    "Customer Support": 7,
+    "Design": 2,
+    "Developer Tools": 12,
+    "E-commerce": 5,
+    "E-signature": 1,
+    "Finance & Accounting": 9,
+    "HR & Recruiting": 7,
+    "Marketing": 10,
+    "Project Management": 10,
+    "Scheduling": 1,
+    "Storage & Documents": 8
+  }
+}
