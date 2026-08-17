@@ -1,0 +1,51 @@
+{
+  "seed": 20260817,
+  "requested_size": 19,
+  "actual_size": 19,
+  "size_derivation": {
+    "rule": "round(0.3 x 63 rows), floored at 10 (5/stratum), capped at 25",
+    "derived_size": 19,
+    "was_overridden": false,
+    "why": "Derived from the corpus rather than fixed. A fixed 20 is a different sample against 63 rows than against 100 -- it silently becomes a larger share of a smaller corpus while still reading as '20 rows'."
+  },
+  "strata": {
+    "high": 9,
+    "medium_low": 10
+  },
+  "strata_targets": {
+    "high": 9,
+    "medium_low": 10
+  },
+  "rows_in_corpus": 63,
+  "corpus_is_partial": true,
+  "strata_shortfall": {},
+  "categories_in_corpus": 14,
+  "per_category_cap": 2,
+  "cap_relaxed": false,
+  "category_distribution": {
+    "Analytics & Data": 2,
+    "CRM & Sales": 2,
+    "Communication": 2,
+    "Design": 2,
+    "Finance & Accounting": 2,
+    "HR & Recruiting": 2,
+    "Marketing": 2,
+    "Project Management": 2,
+    "Scheduling": 1,
+    "Storage & Documents": 2
+  },
+  "forced_requested": [
+    "Amazon SP-API",
+    "PitchBook",
+    "Salesforce Commerce Cloud"
+  ],
+  "forced_included": [],
+  "forced_missing": [
+    "Amazon SP-API",
+    "PitchBook",
+    "Salesforce Commerce Cloud"
+  ],
+  "forced_missing_note": "These products are not in the 100-app corpus (src/toolkit_recon/apps.py), so no pass-1 row exists to audit. They were NOT silently replaced. To include them, add them to APPS and profile them with `python -m toolkit_recon --only <slug>` before rebuilding this queue.",
+  "rows_available": 63,
+  "source": "pass1.json"
+}

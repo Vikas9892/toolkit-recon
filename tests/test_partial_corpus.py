@@ -128,6 +128,47 @@ def test_layer2_reports_which_rows_went_unverified(partial):
     assert set(unverified).isdisjoint(second_passed)
 
 
+def test_a_failed_second_pass_is_not_counted_as_coverage(partial):
+    """Attempted is not verified.
+
+    A budget-bounded run attempts N rows and some of them fail. Counting the
+    failures as second-passed reports coverage the corpus does not have, which
+    is the same silent-partial-coverage failure Layer 2 exists to prevent.
+    """
+    data, rows = partial
+    val_mod.validate(1)
+
+    attempted = [dict(r, pass_number=2) for r in rows[:10]]
+    for r in attempted[:6]:
+        r["agent_notes"] = "RESEARCH FAILED: provider daily token budget exhausted"
+    (data / "pass2.raw.json").write_text(json.dumps(attempted), encoding="utf-8")
+
+    s = corr_mod.corroborate()
+    assert s["rows_attempted_second_pass"] == 10
+    assert s["second_pass_failed"] == 6
+    assert s["rows_second_passed"] == 4          # not 10
+    assert s["second_pass_coverage"] == round(4 / FIXTURE_N, 4)
+
+    # Both ways of having no second reading are named, and neither is lost.
+    assert len(s["never_attempted_rows"]) == FIXTURE_N - 10
+    assert set(s["second_pass_failed_rows"]).isdisjoint(s["never_attempted_rows"])
+    assert (len(s["unverified_rows"])
+            == s["second_pass_failed"] + len(s["never_attempted_rows"]))
+    assert s["rows_second_passed"] + len(s["unverified_rows"]) == FIXTURE_N
+
+
+def test_a_failed_second_pass_never_promotes_confidence(partial):
+    data, rows = partial
+    val_mod.validate(1)
+    attempted = [dict(r, pass_number=2,
+                      agent_notes="RESEARCH FAILED: budget exhausted")
+                 for r in rows[:5]]
+    (data / "pass2.raw.json").write_text(json.dumps(attempted), encoding="utf-8")
+
+    s = corr_mod.corroborate()
+    assert s["confidence_promotions"] == 0
+
+
 # ---------------- Phase 3 sampler ----------------
 
 

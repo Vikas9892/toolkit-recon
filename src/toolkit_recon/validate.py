@@ -48,16 +48,21 @@ class Violation:
 class RuleSpec:
     id: str
     description: str
-    action: str  # flag | force_low | downgrade
+    action: str  # flag | force_low | downgrade | clear_mcp
 
 
 RULES: list[RuleSpec] = [
     RuleSpec("R1_EVIDENCE_EMPTY", "evidence_urls must not be empty", "force_low"),
     RuleSpec("R2_EVIDENCE_NOT_FETCHED",
              "every evidence URL must be in the actually-fetched set", "flag"),
+    # clear_mcp, not flag. A flag records that the claim is unsupported and
+    # leaves has_mcp=true in the artifact, which is the whole failure this rule
+    # was written to catch -- a correct signal with no consequence attached.
+    # Retracting an unsupported positive claim is a downgrade, so it stays
+    # inside Layer 1's "never upgrade" contract.
     RuleSpec("R3_MCP_UNVERIFIED",
              "has_mcp requires a fetched page on the vendor's own domain that "
-             "actually mentions MCP", "flag"),
+             "actually mentions MCP", "clear_mcp"),
     RuleSpec("R4_CONTRADICTION_TIER",
              "buildable_today=yes contradicts partner_gated/no_public_api", "flag"),
     RuleSpec("R5_CONTRADICTION_STYLE",
@@ -215,6 +220,15 @@ def apply_actions(row: dict, violations: list[Violation]) -> dict:
         out["confidence"] = "low"
     elif "downgrade" in actions:
         out["confidence"] = _down(out["confidence"])
+    if "clear_mcp" in actions and out.get("has_mcp"):
+        # Retract the claim and keep the retracted URL visible, so the record
+        # shows what was withdrawn rather than quietly reading as "no MCP".
+        retracted = out.get("mcp_evidence_url")
+        out["has_mcp"] = False
+        out["mcp_evidence_url"] = None
+        out["agent_notes"] = (
+            out.get("agent_notes", "")
+            + f" [layer1: has_mcp retracted, evidence was {retracted}]").strip()
     if violations:
         ids = ",".join(sorted({v.rule for v in violations}))
         out["agent_notes"] = (out.get("agent_notes", "") +
@@ -243,7 +257,7 @@ def validate(pass_number: int = 1) -> dict:
         all_v.extend(vs)
         corrected.append(apply_actions(row, vs))
         for v in vs:
-            if v.action in {"flag", "force_low", "downgrade"}:
+            if v.action in {"flag", "force_low", "downgrade", "clear_mcp"}:
                 flagged.add(ctx.slug)
             if v.rule == "R8_THIN_EVIDENCE":
                 thin_queue.append(ctx.slug)

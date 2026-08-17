@@ -30,10 +30,31 @@ from pathlib import Path
 from .apps import APPS
 from .config import settings
 
-SAMPLE_SIZE = 20
-HIGH_TARGET = 10
-WEAK_TARGET = 10
 DEFAULT_SEED = 20260817
+
+# Sample size is derived from the corpus, not fixed. A quota-stopped run yields
+# fewer rows than the corpus was specified at, and a fixed 20 means something
+# different against 63 rows than against 100 -- it silently becomes a larger
+# share of a smaller corpus while still reading as "20 rows".
+#
+# SAMPLE_SHARE sets the target. MIN_PER_STRATUM is the floor that makes the
+# comparison the sample exists for possible at all: precision in the high
+# cohort against precision in the weak cohort needs enough rows on both sides
+# to mean anything, and below five per side it does not. MAX_SIZE is the
+# tractability ceiling -- past roughly 25 rows a human stops adjudicating
+# carefully, which costs more accuracy than the extra rows buy.
+SAMPLE_SHARE = 0.30
+MIN_PER_STRATUM = 5
+MAX_SIZE = 25
+
+
+def derive_size(n_rows: int) -> int:
+    """Sample size for a corpus of `n_rows`, with the reasoning above."""
+    if n_rows <= 0:
+        return 0
+    target = round(SAMPLE_SHARE * n_rows)
+    target = max(target, MIN_PER_STRATUM * 2)
+    return min(target, MAX_SIZE, n_rows)
 
 # Gated products that stress access_tier, the hardest field in the schema.
 # Matched leniently by name so they are picked up whenever they exist in the
@@ -110,7 +131,7 @@ def _matches(row_name: str, wanted: str) -> bool:
 def sample(
     rows: list[dict],
     seed: int = DEFAULT_SEED,
-    size: int = SAMPLE_SIZE,
+    size: int | None = None,
     forced: list[str] | None = None,
 ) -> tuple[list[dict], dict]:
     """Stratified, category-spread, deterministic sample.
@@ -126,6 +147,11 @@ def sample(
     """
     forced = DEFAULT_FORCED if forced is None else forced
     rng = random.Random(seed)
+    # Whether the caller overrode the derivation is a fact about the call, not
+    # about the number that survived clamping to the corpus size.
+    size_was_explicit = size is not None
+    if size is None:
+        size = derive_size(len(rows))
 
     by_name = {r["name"]: r for r in rows}
     categories = sorted({r["category"] for r in rows})
@@ -241,6 +267,17 @@ def sample(
         "seed": seed,
         "requested_size": size,
         "actual_size": len(picked),
+        "size_derivation": {
+            "rule": (f"round({SAMPLE_SHARE} x {len(rows)} rows), floored at "
+                     f"{MIN_PER_STRATUM * 2} ({MIN_PER_STRATUM}/stratum), "
+                     f"capped at {MAX_SIZE}"),
+            "derived_size": derive_size(len(rows)),
+            "was_overridden": size_was_explicit,
+            "why": ("Derived from the corpus rather than fixed. A fixed 20 is "
+                    "a different sample against 63 rows than against 100 -- it "
+                    "silently becomes a larger share of a smaller corpus while "
+                    "still reading as '20 rows'."),
+        },
         "strata": {"high": got_high, "medium_low": len(picked) - got_high},
         "strata_targets": {"high": target_high, "medium_low": target_weak},
         "rows_in_corpus": len(rows),
@@ -313,7 +350,9 @@ def write_queue(rows: list[dict], meta: dict, path: Path | None = None) -> Path:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="toolkit-recon-audit")
     p.add_argument("--seed", type=int, default=DEFAULT_SEED)
-    p.add_argument("--size", type=int, default=SAMPLE_SIZE)
+    p.add_argument("--size", type=int, default=None,
+                   help="override the derived sample size (default: derived "
+                        "from the corpus, see derive_size)")
     p.add_argument("--source", choices=("auto", "pass1", "checkpoint"),
                    default="auto")
     p.add_argument("--forced", default=None,

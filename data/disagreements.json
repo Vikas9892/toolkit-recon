@@ -1,0 +1,195 @@
+[
+  {
+    "app": "Coda",
+    "field": "access_tier",
+    "pass1": "no_public_api",
+    "pass2": "paid_plan_required"
+  },
+  {
+    "app": "Coda",
+    "field": "api_style",
+    "pass1": [
+      "None"
+    ],
+    "pass2": [
+      "REST"
+    ]
+  },
+  {
+    "app": "Coda",
+    "field": "api_breadth",
+    "pass1": "narrow",
+    "pass2": "moderate"
+  },
+  {
+    "app": "Coda",
+    "field": "buildable_today",
+    "pass1": "no",
+    "pass2": "yes_with_caveats"
+  },
+  {
+    "app": "GitHub",
+    "field": "auth_methods",
+    "pass1": [
+      "Unknown"
+    ],
+    "pass2": [
+      "Basic",
+      "Bearer Token"
+    ]
+  },
+  {
+    "app": "GitHub",
+    "field": "access_tier",
+    "pass1": "no_public_api",
+    "pass2": "self_serve_free"
+  },
+  {
+    "app": "GitHub",
+    "field": "api_style",
+    "pass1": [
+      "None"
+    ],
+    "pass2": [
+      "REST"
+    ]
+  },
+  {
+    "app": "GitHub",
+    "field": "api_breadth",
+    "pass1": "narrow",
+    "pass2": "broad"
+  },
+  {
+    "app": "GitHub",
+    "field": "buildable_today",
+    "pass1": "no",
+    "pass2": "yes_with_caveats"
+  },
+  {
+    "app": "Kustomer",
+    "field": "auth_methods",
+    "pass1": [
+      "Unknown"
+    ],
+    "pass2": [
+      "API Key",
+      "OAuth2"
+    ]
+  },
+  {
+    "app": "Kustomer",
+    "field": "access_tier",
+    "pass1": "no_public_api",
+    "pass2": "admin_approval"
+  },
+  {
+    "app": "Kustomer",
+    "field": "api_style",
+    "pass1": [
+      "None"
+    ],
+    "pass2": [
+      "REST"
+    ]
+  },
+  {
+    "app": "Kustomer",
+    "field": "buildable_today",
+    "pass1": "no",
+    "pass2": "yes_with_caveats"
+  },
+  {
+    "app": "Mixpanel",
+    "field": "auth_methods",
+    "pass1": [
+      "Unknown"
+    ],
+    "pass2": [
+      "Basic"
+    ]
+  },
+  {
+    "app": "Mixpanel",
+    "field": "api_style",
+    "pass1": [
+      "None"
+    ],
+    "pass2": [
+      "REST"
+    ]
+  },
+  {
+    "app": "Mixpanel",
+    "field": "buildable_today",
+    "pass1": "no",
+    "pass2": "yes_with_caveats"
+  },
+  {
+    "app": "Telegram",
+    "field": "auth_methods",
+    "pass1": [
+      "API Key"
+    ],
+    "pass2": [
+      "Unknown"
+    ]
+  },
+  {
+    "app": "Telegram",
+    "field": "access_tier",
+    "pass1": "self_serve_free",
+    "pass2": "no_public_api"
+  },
+  {
+    "app": "Telegram",
+    "field": "api_breadth",
+    "pass1": "broad",
+    "pass2": "narrow"
+  },
+  {
+    "app": "Telegram",
+    "field": "buildable_today",
+    "pass1": "yes",
+    "pass2": "no"
+  },
+  {
+    "app": "Braze",
+    "field": "auth_methods",
+    "pass1": [
+      "API Key",
+      "Bearer Token"
+    ],
+    "pass2": [
+      "Unknown"
+    ]
+  },
+  {
+    "app": "Braze",
+    "field": "access_tier",
+    "pass1": "paid_plan_required",
+    "pass2": "no_public_api"
+  },
+  {
+    "app": "Braze",
+    "field": "api_style",
+    "pass1": [
+      "REST"
+    ],
+    "pass2": [
+      "None"
+    ]
+  },
+  {
+    "app": "Braze",
+    "field": "api_breadth",
+    "pass1": "moderate",
+    "pass2": "narrow"
+  },
+  {
+    "app": "Braze",
+    "field": "buildable_today",
+    "pass1": "yes_with_caveats",
+    "pass2": "no"
+  }
+]

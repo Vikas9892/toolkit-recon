@@ -1,0 +1,92 @@
+{
+  "pass_number": 1,
+  "rows_checked": 63,
+  "rows_with_violations": 2,
+  "total_violations": 2,
+  "confidence_before": {
+    "high": 13,
+    "medium": 41,
+    "low": 9
+  },
+  "confidence_after": {
+    "high": 13,
+    "medium": 41,
+    "low": 9
+  },
+  "rules": {
+    "R1_EVIDENCE_EMPTY": {
+      "description": "evidence_urls must not be empty",
+      "action": "force_low",
+      "count": 0,
+      "apps": []
+    },
+    "R2_EVIDENCE_NOT_FETCHED": {
+      "description": "every evidence URL must be in the actually-fetched set",
+      "action": "flag",
+      "count": 0,
+      "apps": []
+    },
+    "R3_MCP_UNVERIFIED": {
+      "description": "has_mcp requires a fetched page on the vendor's own domain that actually mentions MCP",
+      "action": "clear_mcp",
+      "count": 1,
+      "apps": [
+        "braze"
+      ]
+    },
+    "R4_CONTRADICTION_TIER": {
+      "description": "buildable_today=yes contradicts partner_gated/no_public_api",
+      "action": "flag",
+      "count": 0,
+      "apps": []
+    },
+    "R5_CONTRADICTION_STYLE": {
+      "description": "api_style=[None] contradicts buildable_today=yes",
+      "action": "flag",
+      "count": 1,
+      "apps": [
+        "telegram"
+      ]
+    },
+    "R6_AUTH_UNKNOWN": {
+      "description": "auth_methods=[Unknown] cannot support a claim",
+      "action": "force_low",
+      "count": 0,
+      "apps": []
+    },
+    "R7_NON_OFFICIAL_EVIDENCE": {
+      "description": "all evidence from non-official domains",
+      "action": "downgrade",
+      "count": 0,
+      "apps": []
+    },
+    "R8_THIN_EVIDENCE": {
+      "description": "all archived evidence below min_doc_chars (retroactive floor)",
+      "action": "flag",
+      "count": 0,
+      "apps": []
+    }
+  },
+  "violations": [
+    {
+      "rule": "R5_CONTRADICTION_STYLE",
+      "slug": "telegram",
+      "name": "Telegram",
+      "detail": "api_style=[None] but buildable=yes",
+      "action": "flag"
+    },
+    {
+      "rule": "R3_MCP_UNVERIFIED",
+      "slug": "braze",
+      "name": "Braze",
+      "detail": "MCP evidence is not on a vendor domain: https://apis.io/providers/braze",
+      "action": "clear_mcp"
+    }
+  ],
+  "recheck_queue": [
+    "braze",
+    "telegram"
+  ],
+  "thin_evidence_rerun_queue": [],
+  "process_note": "The min_doc_chars floor (R8) was added after this pass had already started, when a Close docs URL was seen to extract to 133 characters and still count as 'official docs reached'. Rather than discard ~50 minutes of completed work, the rule is applied retroactively here against the archived manifests, and only the apps it actually affects are queued for re-run. thin_evidence_rerun_queue is that list; it is deliberately narrow."
+}

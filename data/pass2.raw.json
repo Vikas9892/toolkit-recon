@@ -1,0 +1,275 @@
+[
+  {
+    "name": "Coda",
+    "category": "Storage & Documents",
+    "one_liner": "Coda is a collaborative document platform that offers a REST API for programmatic access to documents and an admin API for enterprise‑level management.",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "paid_plan_required",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes_with_caveats",
+    "primary_blocker": "Uncertainty about whether the public API is available to free or paid tiers; the admin API is restricted to Enterprise plan.",
+    "evidence_urls": [
+      "https://coda.io/api-migration-guide",
+      "https://coda.io/resources/guides/how-admins-can-securely-setup-coda",
+      "https://coda.io/@success/getting-the-most-out-of-the-coda-admin-api/run-admin-processes-58"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The supplied documents do not specify an authentication scheme for the public API, nor do they state which plan grants access to the API. The admin API is explicitly limited to Enterprise customers, but the public API’s tier is silent. Consequently, the access tier is conservatively set to paid_plan_required, and the auth method is marked Unknown.",
+    "pass_number": 2,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Confluence",
+    "category": "Storage & Documents",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://confluence"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 197,996/200,000 used, 2,004 left, this call needed 3,999. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.",
+    "pass_number": 2,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "GitHub",
+    "category": "Developer Tools",
+    "one_liner": "GitHub provides a public REST API that requires authentication tokens for many endpoints, with rate limits and scope-based access.",
+    "auth_methods": [
+      "Bearer Token",
+      "Basic"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "broad",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes_with_caveats",
+    "primary_blocker": "Many REST API endpoints require authentication with specific scopes or permissions, making it necessary to manage tokens and scopes for a functional toolkit.",
+    "evidence_urls": [
+      "https://docs.github.com/en/rest/authentication",
+      "https://docs.github.com/en/rest/authentication/authenticating-to-the-rest-api",
+      "https://docs.github.com/en/rest/authentication/authenticating-to-the-rest-api?apiVersion=2026-03-10"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The documentation does not explicitly state a free tier, but the API is publicly documented and can be accessed without a paid plan. Authentication is required for many endpoints, and specific scopes/permissions are needed, which is a gating factor for a generic toolkit.",
+    "pass_number": 2,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Greenhouse",
+    "category": "HR & Recruiting",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://greenhouse"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 197,858/200,000 used, 2,142 left, this call needed 4,356. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.",
+    "pass_number": 2,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Jira",
+    "category": "Project Management",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://jira"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 197,997/200,000 used, 2,003 left, this call needed 4,078. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.",
+    "pass_number": 2,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Kustomer",
+    "category": "Customer Support",
+    "one_liner": "Kustomer is a customer support platform that offers REST APIs, SDKs, and an apps platform for building custom integrations.",
+    "auth_methods": [
+      "API Key",
+      "OAuth2"
+    ],
+    "access_tier": "admin_approval",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes_with_caveats",
+    "primary_blocker": "API key generation requires administrator approval, preventing immediate access for new developers.",
+    "evidence_urls": [
+      "https://developer.kustomer.com/kustomer-api-docs/reference/authentication",
+      "https://developer.kustomer.com/kustomer-apps-platform/docs/oauth-provider"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The documentation does not specify a pricing tier or free trial for API access; it only indicates that API keys are managed by administrators. No explicit mention of a Model Context Protocol server is present.",
+    "pass_number": 2,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Mixpanel",
+    "category": "Analytics & Data",
+    "one_liner": "Mixpanel provides event-based analytics and data querying via APIs and SDKs.",
+    "auth_methods": [
+      "Basic"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes_with_caveats",
+    "primary_blocker": "Service account creation requires an admin or owner role, which may not be available to new developers, blocking immediate API access.",
+    "evidence_urls": [
+      "https://developer.mixpanel.com/reference/query-api-authentication",
+      "https://developer.mixpanel.com/reference/authentication",
+      "https://docs.mixpanel.com/reference/service-accounts-api-authentication"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The docs describe Service Account authentication via HTTP Basic Auth and Project Token for ingestion APIs. No explicit tier or free plan is mentioned, so we assume no public API access without credentials. Service account creation requires admin role, which is a gate.",
+    "pass_number": 2,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Oracle NetSuite",
+    "category": "Finance & Accounting",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://netsuite"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: exceeded the 600s per-app deadline in stage 'extract' after 3 document(s), 2 worker(s) in flight",
+    "pass_number": 2,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Salesforce",
+    "category": "CRM & Sales",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://salesforce"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 197,858/200,000 used, 2,142 left, this call needed 4,252. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.",
+    "pass_number": 2,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Telegram",
+    "category": "Communication",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://telegram"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: exceeded the 600s per-app deadline in stage 'extract' after 3 document(s), 3 worker(s) in flight",
+    "pass_number": 2,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Braze",
+    "category": "Marketing",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://braze"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: exceeded the 600s per-app deadline in stage 'extract' after 3 document(s), 1 worker(s) in flight",
+    "pass_number": 2,
+    "extracted_by": "openai/gpt-oss-20b"
+  }
+]

@@ -314,6 +314,35 @@ there is no split cohort — the corpus is uniform. Rows carry `extracted_by` an
 traces carry `llm_model` regardless, so a split would be visible if one ever
 occurred.
 
+**Layer 3 was skipped deliberately, and this is the record of that.** Not
+abandoned, not run-out-of-budget — decided against, after the hand-check came
+back. Layer 3 browser-confirms disputed rows: it takes the 11 rows Layer 2
+routed to it and re-reads them under a real browser to settle field-level
+disagreements. That is worth doing when the disputes are the biggest open
+question about the corpus. After the hand-check they are not.
+
+The hand-check produced a directional split — 57.1% false negatives against 0%
+false positives on an adversarially selected sample — and named the mechanism:
+the extractor reads documented API as obtainable credentials, which moves
+verdicts in one direction only. That is a stronger result than Layer 3 could
+have returned, for a reason worth being precise about. Layer 3 settles
+*disagreements between two passes*, so its ceiling is inter-pass consistency,
+and both passes share the extractor whose bias is the actual finding. It cannot
+see a bias that both passes have. Eleven rows confirmed against a browser would
+have told me which pass was right about eleven rows; the hand-check told me the
+corpus-level claim was wrong and why.
+
+There is also an honest budget fact underneath, and it should not be dressed up
+as pure judgment: the daily token budget was exhausted twice over by this point,
+Layer 2 reached 4 usable rows of 63, and Layer 3 would have been running on the
+same empty tank. The decision is what I would make with budget in hand, but I
+did not have to make it with budget in hand, and those are different claims.
+
+The 11-row Layer 3 queue is preserved in `corroboration_summary.json` under
+`layer3_queue`. It is a queue that was not run, which is a different artifact
+from a queue that came back clean, and nothing downstream reads it as the
+latter.
+
 ---
 
 ## The Etsy false alarm

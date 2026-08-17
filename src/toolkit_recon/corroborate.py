@@ -127,15 +127,39 @@ def corroborate(pass1_file: str = "pass1.validated.json",
 
     # A verification layer that silently covers only part of the corpus is
     # worse than one that covers part and says which part. Name the gap.
-    not_second_passed = sorted(n for n in rows1 if n not in rows2)
+    #
+    # Two ways to have no second reading, and they are different facts: the row
+    # was never attempted (budget ran out before reaching it), or it was
+    # attempted and the second pass failed. Counting an attempt that produced
+    # nothing as coverage is the same silent-partial-coverage failure this
+    # comment warns about, one level down, so `rows_second_passed` counts only
+    # rows with a usable second reading.
+    never_attempted = sorted(n for n in rows1 if n not in rows2)
+    failed_second = sorted(
+        n for n in shared
+        if rows2[n]["agent_notes"].startswith("RESEARCH FAILED"))
+    usable = [n for n in shared if n not in set(failed_second)]
+    not_second_passed = sorted(never_attempted + failed_second)
 
     summary = {
         "rows_in_pass1": len(rows1),
-        "rows_second_passed": len(shared),
+        "rows_second_passed": len(usable),
         "rows_not_second_passed": len(not_second_passed),
-        "second_pass_coverage": (round(len(shared) / len(rows1), 4)
+        "second_pass_coverage": (round(len(usable) / len(rows1), 4)
                                  if rows1 else None),
+        "rows_attempted_second_pass": len(shared),
+        "second_pass_failed": len(failed_second),
+        "second_pass_failed_rows": failed_second,
+        "never_attempted_rows": never_attempted,
         "unverified_rows": not_second_passed,
+        "coverage_note": (
+            f"{len(usable)} of {len(rows1)} rows have a corroborated second "
+            f"reading. {len(shared)} were attempted; {len(failed_second)} of "
+            f"those failed and produced no usable reading, and "
+            f"{len(never_attempted)} were never reached before the daily token "
+            "budget ran out. Attempted is not the same as verified and is not "
+            "counted as coverage here."
+        ),
         "rows_compared": len(shared),
         "fully_agreeing_rows": len(shared) - len(disputed_apps),
         "disputed_rows": len(disputed_apps),
@@ -163,8 +187,13 @@ def main(argv: list[str] | None = None) -> int:
     print("LAYER 2 — INDEPENDENT SECOND PASS")
     print("=" * 66)
     print(f"  rows in pass 1            : {s['rows_in_pass1']}")
-    print(f"  second-passed             : {s['rows_second_passed']}"
-          f"  ({(s['second_pass_coverage'] or 0):.0%} coverage)")
+    print(f"  attempted                 : {s['rows_attempted_second_pass']}")
+    print(f"    of those, failed        : {s['second_pass_failed']}"
+          + (f"  ({', '.join(s['second_pass_failed_rows'][:7])})"
+             if s["second_pass_failed_rows"] else ""))
+    print(f"  second-passed (usable)    : {s['rows_second_passed']}"
+          f"  ({(s['second_pass_coverage'] or 0):.0%} coverage of pass 1)")
+    print(f"  never reached             : {len(s['never_attempted_rows'])}")
     print(f"  NOT second-passed         : {s['rows_not_second_passed']}"
           f"  (listed in corroboration_summary.json -> unverified_rows)")
     print(f"  fully agreeing            : {s['fully_agreeing_rows']}")

@@ -139,10 +139,46 @@ def test_actions_only_ever_downgrade():
     """A validation rule must never be able to raise confidence."""
     order = {"low": 0, "medium": 1, "high": 2}
     for rule in RULE_BY_ID.values():
-        assert rule.action in {"flag", "force_low", "downgrade"}
+        assert rule.action in {"flag", "force_low", "downgrade", "clear_mcp"}
     row = _row(confidence="low", auth_methods=["Unknown"])
     out = apply_actions(row, check_row(row, _ctx()))
     assert order[out["confidence"]] <= order[row["confidence"]]
+
+
+def test_unverified_mcp_claim_is_retracted_not_merely_flagged():
+    """R3 firing must change the artifact, not just annotate it.
+
+    A rule that records "this claim is unsupported" and leaves has_mcp=true in
+    the output is the exact shape it was written to catch: a correct signal
+    with no consequence attached.
+    """
+    row = _row(has_mcp=True, mcp_evidence_url="https://apis.io/providers/acme")
+    vs = check_row(row, _ctx(fetched_urls={"https://apis.io/providers/acme"},
+                             doc_text={"https://apis.io/providers/acme": "MCP server"}))
+    assert "R3_MCP_UNVERIFIED" in _ids(vs)
+
+    out = apply_actions(row, vs)
+    assert out["has_mcp"] is False
+    assert out["mcp_evidence_url"] is None
+    # The withdrawn URL stays visible; a retraction must not read as "no MCP".
+    assert "apis.io/providers/acme" in out["agent_notes"]
+    assert "retracted" in out["agent_notes"]
+
+
+def test_retraction_never_invents_an_mcp_claim():
+    """clear_mcp is a downgrade: it can remove a claim, never add one."""
+    row = _row(has_mcp=False, mcp_evidence_url=None)
+    out = apply_actions(row, check_row(row, _ctx()))
+    assert out["has_mcp"] is False
+    assert out["mcp_evidence_url"] is None
+
+
+def test_a_vendor_hosted_mcp_claim_survives():
+    row = _row(has_mcp=True, mcp_evidence_url="https://docs.acme.com/mcp")
+    vs = check_row(row, _ctx(fetched_urls={"https://docs.acme.com/mcp"},
+                             doc_text={"https://docs.acme.com/mcp": "MCP server"}))
+    assert "R3_MCP_UNVERIFIED" not in _ids(vs)
+    assert apply_actions(row, vs)["has_mcp"] is True
 
 
 # ---------------- Layer 2 ----------------

@@ -1,0 +1,423 @@
+{
+  "source": "pass1.validated.json",
+  "rows_in_corpus": 63,
+  "rows_clustered": 54,
+  "research_failed_rows": [
+    "Coda",
+    "Confluence",
+    "GitHub",
+    "Greenhouse",
+    "Jira",
+    "Kustomer",
+    "Mixpanel",
+    "Oracle NetSuite",
+    "Salesforce"
+  ],
+  "failed_rows_note": "RESEARCH FAILED rows have no findings to cluster and are excluded from every denominator here. They are named rather than folded into a tier bucket they never earned.",
+  "access_tier_caveat": {
+    "status": "measured",
+    "false_negative_rate": 0.5714,
+    "note": "Every archetype here is keyed partly on access_tier, and that field was measured wrong on 57% of the self-serve rows hand-checked against vendor pricing pages, in one direction: gated products read as self-serve. The self-serve archetypes below are therefore overstated and the gated ones understated. The shapes are real; the sizes are not.",
+    "source": "data/hand_check.json"
+  },
+  "archetypes": [
+    {
+      "access_tier": "self_serve_free",
+      "api_breadth": "moderate",
+      "buildable_today": "yes",
+      "self_serve": true,
+      "count": 32,
+      "share_of_live_rows": 0.5926,
+      "members": [
+        "ActiveCampaign",
+        "Amplitude",
+        "Apollo.io",
+        "Asana",
+        "BambooHR",
+        "Basecamp",
+        "Box",
+        "Brevo",
+        "Calendly",
+        "CircleCI",
+        "ClickUp",
+        "Crisp",
+        "Customer.io",
+        "Databricks",
+        "Datadog",
+        "Deel",
+        "Discord",
+        "Docker Hub",
+        "Etsy",
+        "Figma",
+        "Freshdesk",
+        "Freshsales",
+        "Front",
+        "Google Analytics 4",
+        "Gorgias",
+        "Help Scout",
+        "Intercom",
+        "Looker",
+        "Microsoft Teams",
+        "Salesloft",
+        "Shopify",
+        "Zoho CRM"
+      ]
+    },
+    {
+      "access_tier": "self_serve_free",
+      "api_breadth": "broad",
+      "buildable_today": "yes",
+      "self_serve": true,
+      "count": 10,
+      "share_of_live_rows": 0.1852,
+      "members": [
+        "Airtable",
+        "Bitbucket",
+        "Brex",
+        "Close",
+        "Copper",
+        "Pipedrive",
+        "Slack",
+        "Telegram",
+        "Twilio",
+        "Zoom"
+      ]
+    },
+    {
+      "access_tier": "self_serve_free",
+      "api_breadth": "narrow",
+      "buildable_today": "yes",
+      "self_serve": true,
+      "count": 5,
+      "share_of_live_rows": 0.0926,
+      "members": [
+        "BILL",
+        "BigCommerce",
+        "Canva",
+        "DocuSign",
+        "RingCentral"
+      ]
+    },
+    {
+      "access_tier": "paid_plan_required",
+      "api_breadth": "moderate",
+      "buildable_today": "yes_with_caveats",
+      "self_serve": false,
+      "count": 2,
+      "share_of_live_rows": 0.037,
+      "members": [
+        "Braze",
+        "WhatsApp Business Platform"
+      ]
+    },
+    {
+      "access_tier": "partner_gated",
+      "api_breadth": "moderate",
+      "buildable_today": "yes_with_caveats",
+      "self_serve": false,
+      "count": 2,
+      "share_of_live_rows": 0.037,
+      "members": [
+        "Expensify",
+        "Gusto"
+      ]
+    },
+    {
+      "access_tier": "paid_plan_required",
+      "api_breadth": "broad",
+      "buildable_today": "yes_with_caveats",
+      "self_serve": false,
+      "count": 1,
+      "share_of_live_rows": 0.0185,
+      "members": [
+        "Squarespace"
+      ]
+    },
+    {
+      "access_tier": "partner_gated",
+      "api_breadth": "broad",
+      "buildable_today": "yes_with_caveats",
+      "self_serve": false,
+      "count": 1,
+      "share_of_live_rows": 0.0185,
+      "members": [
+        "Outreach"
+      ]
+    },
+    {
+      "access_tier": "self_serve_free",
+      "api_breadth": "narrow",
+      "buildable_today": "yes_with_caveats",
+      "self_serve": true,
+      "count": 1,
+      "share_of_live_rows": 0.0185,
+      "members": [
+        "HubSpot"
+      ]
+    }
+  ],
+  "blocker_families": {
+    "rows_considered": 54,
+    "rows_with_no_blocker_stated": 47,
+    "rows_with_a_blocker": 7,
+    "families": {
+      "partner_or_approval_process": {
+        "count": 3,
+        "share_of_stated": 0.4286,
+        "apps": [
+          "Expensify",
+          "Gusto",
+          "Outreach"
+        ],
+        "examples": [
+          "API access requires a request/approval process to obtain OAuth credentials",
+          "Production pre‑approval required from Gusto Partnerships team",
+          "API access requires an enterprise customer agreement; the API is not accepting new applications at this time"
+        ]
+      },
+      "paid_plan_required": {
+        "count": 3,
+        "share_of_stated": 0.4286,
+        "apps": [
+          "Braze",
+          "Squarespace",
+          "WhatsApp Business Platform"
+        ],
+        "examples": [
+          "Paid plan required for API usage",
+          "API access requires a paid plan",
+          "API access requires a paid Commerce Advanced plan"
+        ]
+      },
+      "admin_or_workspace_enablement": {
+        "count": 0,
+        "share_of_stated": 0.0,
+        "apps": [],
+        "examples": []
+      },
+      "no_public_api": {
+        "count": 0,
+        "share_of_stated": 0.0,
+        "apps": [],
+        "examples": []
+      },
+      "rate_or_quota_limited": {
+        "count": 0,
+        "share_of_stated": 0.0,
+        "apps": [],
+        "examples": []
+      },
+      "verification_or_compliance": {
+        "count": 0,
+        "share_of_stated": 0.0,
+        "apps": [],
+        "examples": []
+      }
+    },
+    "unmatched": [
+      {
+        "app": "HubSpot",
+        "blocker": "Requires a backend service to handle the OAuth flow and token storage before API requests can be made."
+      }
+    ],
+    "taxonomy_note": "First match wins and no family is a catch-all. Anything matching no pattern is listed by name under `unmatched` rather than being absorbed, so the taxonomy cannot look more complete than it is."
+  },
+  "auth_combinations": [
+    {
+      "auth_methods": "API Key + OAuth2",
+      "count": 17,
+      "share": 0.3148
+    },
+    {
+      "auth_methods": "OAuth2",
+      "count": 11,
+      "share": 0.2037
+    },
+    {
+      "auth_methods": "Bearer Token + OAuth2",
+      "count": 6,
+      "share": 0.1111
+    },
+    {
+      "auth_methods": "Basic + OAuth2",
+      "count": 5,
+      "share": 0.0926
+    },
+    {
+      "auth_methods": "API Key + Bearer Token",
+      "count": 4,
+      "share": 0.0741
+    },
+    {
+      "auth_methods": "API Key",
+      "count": 3,
+      "share": 0.0556
+    },
+    {
+      "auth_methods": "Basic + Bearer Token + OAuth2",
+      "count": 2,
+      "share": 0.037
+    },
+    {
+      "auth_methods": "Basic + Bearer Token",
+      "count": 2,
+      "share": 0.037
+    },
+    {
+      "auth_methods": "Basic",
+      "count": 2,
+      "share": 0.037
+    },
+    {
+      "auth_methods": "API Key + Basic + Bearer Token",
+      "count": 1,
+      "share": 0.0185
+    },
+    {
+      "auth_methods": "Partner/Custom",
+      "count": 1,
+      "share": 0.0185
+    }
+  ],
+  "category_profile": [
+    {
+      "category": "CRM & Sales",
+      "rows": 10,
+      "failed_rows": 1,
+      "gated_rows": 1,
+      "gated_share_of_live": 0.1111,
+      "buildable_yes": 7
+    },
+    {
+      "category": "Communication",
+      "rows": 10,
+      "failed_rows": 0,
+      "gated_rows": 1,
+      "gated_share_of_live": 0.1,
+      "buildable_yes": 9
+    },
+    {
+      "category": "Analytics & Data",
+      "rows": 5,
+      "failed_rows": 1,
+      "gated_rows": 0,
+      "gated_share_of_live": 0.0,
+      "buildable_yes": 4
+    },
+    {
+      "category": "Customer Support",
+      "rows": 5,
+      "failed_rows": 1,
+      "gated_rows": 0,
+      "gated_share_of_live": 0.0,
+      "buildable_yes": 4
+    },
+    {
+      "category": "Developer Tools",
+      "rows": 5,
+      "failed_rows": 1,
+      "gated_rows": 0,
+      "gated_share_of_live": 0.0,
+      "buildable_yes": 4
+    },
+    {
+      "category": "E-commerce",
+      "rows": 4,
+      "failed_rows": 0,
+      "gated_rows": 1,
+      "gated_share_of_live": 0.25,
+      "buildable_yes": 3
+    },
+    {
+      "category": "Finance & Accounting",
+      "rows": 4,
+      "failed_rows": 1,
+      "gated_rows": 1,
+      "gated_share_of_live": 0.3333,
+      "buildable_yes": 2
+    },
+    {
+      "category": "HR & Recruiting",
+      "rows": 4,
+      "failed_rows": 1,
+      "gated_rows": 1,
+      "gated_share_of_live": 0.3333,
+      "buildable_yes": 2
+    },
+    {
+      "category": "Marketing",
+      "rows": 4,
+      "failed_rows": 0,
+      "gated_rows": 1,
+      "gated_share_of_live": 0.25,
+      "buildable_yes": 3
+    },
+    {
+      "category": "Project Management",
+      "rows": 4,
+      "failed_rows": 1,
+      "gated_rows": 0,
+      "gated_share_of_live": 0.0,
+      "buildable_yes": 3
+    },
+    {
+      "category": "Storage & Documents",
+      "rows": 4,
+      "failed_rows": 2,
+      "gated_rows": 0,
+      "gated_share_of_live": 0.0,
+      "buildable_yes": 2
+    },
+    {
+      "category": "Design",
+      "rows": 2,
+      "failed_rows": 0,
+      "gated_rows": 0,
+      "gated_share_of_live": 0.0,
+      "buildable_yes": 2
+    },
+    {
+      "category": "E-signature",
+      "rows": 1,
+      "failed_rows": 0,
+      "gated_rows": 0,
+      "gated_share_of_live": 0.0,
+      "buildable_yes": 1
+    },
+    {
+      "category": "Scheduling",
+      "rows": 1,
+      "failed_rows": 0,
+      "gated_rows": 0,
+      "gated_share_of_live": 0.0,
+      "buildable_yes": 1
+    }
+  ],
+  "mcp": {
+    "rows_considered": 54,
+    "with_official_mcp": 7,
+    "share": 0.1296,
+    "apps": [
+      "ActiveCampaign",
+      "CircleCI",
+      "ClickUp",
+      "Docker Hub",
+      "Etsy",
+      "Front",
+      "Zoho CRM"
+    ],
+    "evidence": {
+      "ActiveCampaign": "https://developers.activecampaign.com",
+      "CircleCI": "https://circleci.com/docs/guides/toolkit/api-developers-guide",
+      "ClickUp": "https://developer.clickup.com",
+      "Docker Hub": "https://docs.docker.com/docker-hub",
+      "Etsy": "https://www.etsy.com/developers/documentation/getting_started/oauth",
+      "Front": "https://dev.frontapp.com/docs/authentication",
+      "Zoho CRM": "https://www.zoho.com/crm/developer"
+    },
+    "retracted_by_provenance_guard": [
+      "Braze"
+    ],
+    "provenance_note": "Every URL above is on the vendor's own domain. Claims resting on third-party directories were retracted by Layer 1 R3 and are listed under retracted_by_provenance_guard rather than dropped silently."
+  }
+}

@@ -58,16 +58,43 @@ def data_dir(tmp_path, monkeypatch):
 # ---------------- sampler ----------------
 
 
-def test_samples_exactly_twenty():
-    picked, meta = audit_mod.sample(_corpus(), forced=[])
-    assert len(picked) == 20
-    assert meta["actual_size"] == 20
+def test_sample_size_is_derived_from_the_corpus_not_fixed():
+    """A fixed 20 is a different sample against 63 rows than against 100.
+
+    It silently becomes a larger share of a smaller corpus while still reading
+    as "20 rows", so the size has to move with N.
+    """
+    corpus = _corpus()                      # 10 categories x 6 = 60 rows
+    expected = audit_mod.derive_size(len(corpus))
+    picked, meta = audit_mod.sample(corpus, forced=[])
+    assert len(picked) == expected
+    assert meta["actual_size"] == expected
+    assert meta["size_derivation"]["derived_size"] == expected
+    assert meta["size_derivation"]["was_overridden"] is False
 
 
-def test_strata_are_ten_and_ten():
+def test_derived_size_scales_with_n_and_respects_its_bounds():
+    share, cap = audit_mod.SAMPLE_SHARE, audit_mod.MAX_SIZE
+    floor = audit_mod.MIN_PER_STRATUM * 2
+
+    assert audit_mod.derive_size(60) == round(share * 60)
+    assert audit_mod.derive_size(63) == round(share * 63)
+    # Monotonic in N: a bigger corpus never yields a smaller sample.
+    sizes = [audit_mod.derive_size(n) for n in range(1, 200)]
+    assert sizes == sorted(sizes)
+    # Floor protects the high-vs-weak comparison; ceiling protects the human.
+    assert audit_mod.derive_size(12) == floor
+    assert audit_mod.derive_size(1000) == cap
+    # Can never ask for more rows than exist.
+    assert audit_mod.derive_size(3) == 3
+    assert audit_mod.derive_size(0) == 0
+
+
+def test_strata_split_evenly_when_both_cohorts_can_supply():
     picked, meta = audit_mod.sample(_corpus(), forced=[])
-    assert meta["strata"]["high"] == 10
-    assert meta["strata"]["medium_low"] == 10
+    n = meta["actual_size"]
+    assert meta["strata"]["high"] == n // 2
+    assert meta["strata"]["medium_low"] == n - n // 2
     assert all(r["confidence"] == "high"
                for r in picked if r["confidence"] == "high")
 
@@ -77,9 +104,10 @@ def test_no_category_is_over_represented():
     counts = {}
     for r in picked:
         counts[r["category"]] = counts.get(r["category"], 0) + 1
-    assert max(counts.values()) <= meta["per_category_cap"]
-    # 20 rows over 10 categories at cap 2 must touch every category.
-    assert len(counts) == len(CATEGORIES)
+    cap = meta["per_category_cap"]
+    assert max(counts.values()) <= cap
+    # At the cap, the sample must be spread over at least this many categories.
+    assert len(counts) >= meta["actual_size"] // cap
 
 
 def test_sampling_is_deterministic_for_a_seed():
@@ -102,7 +130,7 @@ def test_forced_apps_are_always_included():
     assert "Amazon Selling Partner API" in names
     assert meta["forced_included"] == ["Amazon Selling Partner API"]
     assert meta["forced_missing"] == []
-    assert len(picked) == 20
+    assert len(picked) == audit_mod.derive_size(len(corpus))
 
 
 def test_missing_forced_apps_are_reported_not_substituted():
@@ -134,13 +162,14 @@ def test_works_on_partial_data_with_targets_derived_from_n():
 
 
 def test_strata_stay_balanced_on_a_partial_corpus():
-    """40 rows, both strata available: still a 50/50 split of the sample."""
+    """Both strata available: still a 50/50 split of whatever size N implies."""
     rows = ([_row(f"H{i}", CATEGORIES[i % 10], "high") for i in range(20)]
             + [_row(f"L{i}", CATEGORIES[i % 10], "low") for i in range(20)])
     picked, meta = audit_mod.sample(rows, forced=[])
-    assert len(picked) == 20
-    assert meta["strata"]["high"] == 10
-    assert meta["strata"]["medium_low"] == 10
+    n = audit_mod.derive_size(len(rows))
+    assert len(picked) == n
+    assert meta["strata"]["high"] == n // 2
+    assert meta["strata"]["medium_low"] == n - n // 2
 
 
 def test_sample_shrinks_when_corpus_is_smaller_than_requested():
@@ -149,6 +178,7 @@ def test_sample_shrinks_when_corpus_is_smaller_than_requested():
     picked, meta = audit_mod.sample(rows, size=20, forced=[])
     assert len(picked) == 10
     assert meta["actual_size"] == 10
+    assert meta["size_derivation"]["was_overridden"] is True
     assert meta["corpus_is_partial"] is True
 
 
@@ -170,7 +200,7 @@ def test_queue_csv_has_the_agreed_columns_and_blank_verdicts(data_dir):
         rows = list(csv.DictReader(fh))
 
     assert list(rows[0].keys()) == audit_mod.QUEUE_COLUMNS
-    assert len(rows) == 20
+    assert len(rows) == meta["actual_size"]
     for r in rows:
         for col in ("verdict_auth", "verdict_tier", "verdict_api",
                     "verdict_mcp", "verdict_buildable",
