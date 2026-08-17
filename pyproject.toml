@@ -1,0 +1,23 @@
+[project]
+name = "toolkit-recon"
+version = "0.1.0"
+description = "Research agent that profiles SaaS apps for agent-toolkit buildability"
+requires-python = ">=3.12"
+dependencies = [
+    "composio>=0.19.0",
+    "httpx>=0.28",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.5",
+    "python-dotenv>=1.0",
+    "beautifulsoup4>=4.12",
+]
+
+[project.scripts]
+toolkit-recon = "toolkit_recon.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

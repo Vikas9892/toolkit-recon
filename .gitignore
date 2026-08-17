@@ -1,0 +1,26 @@
+# secrets — never commit
+.env
+.env.local
+*.key
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# agent tooling (installed skills, not project source)
+.agents/
+.claude/
+skills-lock.json
+
+# pipeline artifacts: raw evidence + caches are large and reproducible.
+# The curated outputs (pass*.json, logs/trace.jsonl) ARE committed — they are
+# the deliverable a reviewer reads.
+data/raw/
+data/cache/
+data/checkpoints/
