@@ -133,10 +133,10 @@ def print_summary(rows: list[AppResearch], elapsed: float, provider_name: str) -
     for r in failures:
         print(f"  - {r.name}: {r.agent_notes[:110]}")
 
-    print(f"\noutputs")
+    print("\noutputs")
     print(f"  data/pass{rows[0].pass_number if rows else 1}.json")
-    print(f"  data/raw/<slug>/")
-    print(f"  logs/trace.jsonl")
+    print("  data/raw/<slug>/")
+    print("  logs/trace.jsonl")
     print(bar)
 
 
