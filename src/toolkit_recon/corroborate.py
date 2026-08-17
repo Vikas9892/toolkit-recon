@@ -125,7 +125,17 @@ def corroborate(pass1_file: str = "pass1.validated.json",
     for d in all_disputes:
         field_counts[d["field"]] = field_counts.get(d["field"], 0) + 1
 
+    # A verification layer that silently covers only part of the corpus is
+    # worse than one that covers part and says which part. Name the gap.
+    not_second_passed = sorted(n for n in rows1 if n not in rows2)
+
     summary = {
+        "rows_in_pass1": len(rows1),
+        "rows_second_passed": len(shared),
+        "rows_not_second_passed": len(not_second_passed),
+        "second_pass_coverage": (round(len(shared) / len(rows1), 4)
+                                 if rows1 else None),
+        "unverified_rows": not_second_passed,
         "rows_compared": len(shared),
         "fully_agreeing_rows": len(shared) - len(disputed_apps),
         "disputed_rows": len(disputed_apps),
@@ -152,7 +162,11 @@ def main(argv: list[str] | None = None) -> int:
     print("=" * 66)
     print("LAYER 2 — INDEPENDENT SECOND PASS")
     print("=" * 66)
-    print(f"  rows compared             : {s['rows_compared']}")
+    print(f"  rows in pass 1            : {s['rows_in_pass1']}")
+    print(f"  second-passed             : {s['rows_second_passed']}"
+          f"  ({(s['second_pass_coverage'] or 0):.0%} coverage)")
+    print(f"  NOT second-passed         : {s['rows_not_second_passed']}"
+          f"  (listed in corroboration_summary.json -> unverified_rows)")
     print(f"  fully agreeing            : {s['fully_agreeing_rows']}")
     print(f"  confidence promotions     : {s['confidence_promotions']}")
     print(f"  disputed rows -> layer 3  : {s['disputed_rows']}")

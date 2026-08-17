@@ -130,6 +130,20 @@ def sample(
     by_name = {r["name"]: r for r in rows}
     categories = sorted({r["category"] for r in rows})
     n_cat = len(categories) or 1
+
+    # Everything below is derived from what actually exists, never assumed.
+    # A run stopped by a quota wall yields fewer rows than the corpus, and a
+    # sampler that hardcodes 20 rows split 10/10 would either fail or silently
+    # over-sample one stratum.
+    size = min(size, len(rows))
+    n_high = sum(1 for r in rows if r["confidence"] == "high")
+    n_weak = len(rows) - n_high
+    half = size // 2
+    # Balanced when both strata can supply half; otherwise take what exists and
+    # let the other stratum fill the remainder, recording the shortfall.
+    target_high = min(half, n_high)
+    target_weak = min(size - target_high, n_weak)
+    target_high = min(size - target_weak, n_high)
     cap = max(2, math.ceil(size / n_cat))
 
     # --- forced ---
@@ -155,8 +169,8 @@ def sample(
         return "high" if r["confidence"] == "high" else "weak"
 
     remaining = {
-        "high": HIGH_TARGET - sum(1 for r in picked if stratum(r) == "high"),
-        "weak": WEAK_TARGET - sum(1 for r in picked if stratum(r) == "weak"),
+        "high": target_high - sum(1 for r in picked if stratum(r) == "high"),
+        "weak": target_weak - sum(1 for r in picked if stratum(r) == "weak"),
     }
 
     pools: dict[str, dict[str, list[dict]]] = {
@@ -228,7 +242,9 @@ def sample(
         "requested_size": size,
         "actual_size": len(picked),
         "strata": {"high": got_high, "medium_low": len(picked) - got_high},
-        "strata_targets": {"high": HIGH_TARGET, "medium_low": WEAK_TARGET},
+        "strata_targets": {"high": target_high, "medium_low": target_weak},
+        "rows_in_corpus": len(rows),
+        "corpus_is_partial": len(rows) < 100,
         "strata_shortfall": {k: v for k, v in stratum_shortfall.items() if v},
         "categories_in_corpus": n_cat,
         "per_category_cap": cap,

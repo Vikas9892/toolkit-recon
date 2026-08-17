@@ -157,6 +157,51 @@ now aborts with the used-versus-limit numbers and stops starting new apps.
 
 ---
 
+## The pattern underneath all of it
+
+Three of the failures above look unrelated. They are the same bug.
+
+The health probe sent one token and got a 200 back, so the daily bucket looked
+fine while being spent. The provider fallback wrote a warning to stderr and
+carried on profiling apps off DuckDuckGo. The confidence column asked the model
+whether it had read official documentation and believed the answer.
+
+In each case **the signal existed and nothing acted on it.** The rate-limit
+headers were right there in the response. The warning was printed. The model
+even reported its own basis honestly enough to check. What was missing was a
+consequence — something that changed behaviour when the signal said *no*.
+
+That is the failure mode worth naming, because it is the one that survives code
+review. A crash announces itself. A system that emits a correct warning and
+continues looks healthy on every dashboard while producing wrong output, and it
+will keep doing that until someone reads the artifacts closely enough to notice
+the evidence does not support the claim.
+
+So the fixes are all the same shape — convert a signal into a consequence:
+
+- The health probe now sends a realistically sized request, because a check
+  that does not resemble the workload measures the check.
+- The missing Composio key aborts the run instead of warning, because a whole
+  corpus built on the wrong evidence source is not a degraded result, it is a
+  different experiment.
+- The model no longer asserts its own trustworthiness at all.
+
+That last one is why `Extraction` and `AppResearch` are separate models rather
+than one. The split is not tidiness. It is the same principle expressed in the
+type system: `Extraction` is the exhaustive list of things the model is allowed
+to influence, so anything absent from it — `confidence`, `pass_number`, the
+final `evidence_urls` — cannot be asserted into existence no matter what the
+model returns. `official_docs_reached` is computed from bytes we retrieved.
+Evidence URLs are intersected with pages actually fetched. An MCP claim dies
+unless the cited page mentions MCP.
+
+The same shape runs through the verification layers. Layer 1's rules can
+downgrade but never upgrade. Layer 3 discards any verdict whose quote is not
+literally present in the page we captured. In every case the model proposes and
+the code disposes, and the code only accepts what it can check itself.
+
+---
+
 ## Judgment calls, and what each one cost
 
 **Prompt budget, 6,000 → 5,400 characters.** At the old size two extractions
@@ -191,6 +236,21 @@ over the fifty-two already there. That is a design bug, not just operator error
 — a checkpoint a narrower run can erase is not a checkpoint. Reading is now
 unconditional; `--resume` decides only whether completed apps are *skipped*,
 never whether they are *kept*.
+
+**Spending the last of the budget on breadth, not list order.** With about 40
+apps of budget left and the corpus grouped by category, list order would have
+finished CRM, Communication and Project Management and left seven categories at
+zero. Per-category claims are the deliverable, and a category with no rows
+supports none. So the remaining queue is reordered round-robin, poorest-covered
+category first, until every category reaches a floor before any gets an extra
+app. Projection at the time of the switch: 11 of 14 categories reach at least
+three rows, against 3 of 14 under list order. The decision and its reason are
+written to `queue_order.json` so it reads as a call, not an accident.
+
+The three that stay thin — Design at 2, Scheduling at 1, E-signature at 1 — are
+limited by the corpus itself, not the ordering. Those categories only have that
+many apps in `apps.py`. That is a corpus design weakness and no amount of
+scheduling fixes it.
 
 **Model change at the restart.** With `gpt-oss-120b`'s daily budget spent and
 the corpus needing a rebuild anyway, the whole of pass 1 moved to

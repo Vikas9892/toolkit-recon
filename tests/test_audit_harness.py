@@ -115,12 +115,41 @@ def test_missing_forced_apps_are_reported_not_substituted():
     assert "not in the 100-app corpus" in meta["forced_missing_note"]
 
 
-def test_works_on_partial_data_and_records_shortfall():
+def test_works_on_partial_data_with_targets_derived_from_n():
+    """A quota-stopped run yields fewer rows than the corpus. Strata targets
+    must come from what exists, not from a hardcoded 10/10 that would either
+    fail or silently over-sample one stratum."""
     tiny = [_row(f"A{i}", CATEGORIES[i % 3], "medium") for i in range(6)]
     picked, meta = audit_mod.sample(tiny, forced=[])
-    assert len(picked) == 6           # cannot invent rows
+
+    assert len(picked) == 6                    # cannot invent rows
     assert meta["strata"]["high"] == 0
-    assert meta["strata_shortfall"]["high"] == 10  # reported, not hidden
+    assert meta["strata"]["medium_low"] == 6
+    # Targeting 0 high when 0 exist is correct, not a shortfall.
+    assert meta["strata_targets"]["high"] == 0
+    assert meta["strata_targets"]["medium_low"] == 6
+    assert meta["strata_shortfall"] == {}
+    assert meta["rows_in_corpus"] == 6
+    assert meta["corpus_is_partial"] is True
+
+
+def test_strata_stay_balanced_on_a_partial_corpus():
+    """40 rows, both strata available: still a 50/50 split of the sample."""
+    rows = ([_row(f"H{i}", CATEGORIES[i % 10], "high") for i in range(20)]
+            + [_row(f"L{i}", CATEGORIES[i % 10], "low") for i in range(20)])
+    picked, meta = audit_mod.sample(rows, forced=[])
+    assert len(picked) == 20
+    assert meta["strata"]["high"] == 10
+    assert meta["strata"]["medium_low"] == 10
+
+
+def test_sample_shrinks_when_corpus_is_smaller_than_requested():
+    rows = ([_row(f"H{i}", CATEGORIES[i % 4], "high") for i in range(5)]
+            + [_row(f"L{i}", CATEGORIES[i % 4], "medium") for i in range(5)])
+    picked, meta = audit_mod.sample(rows, size=20, forced=[])
+    assert len(picked) == 10
+    assert meta["actual_size"] == 10
+    assert meta["corpus_is_partial"] is True
 
 
 def test_lenient_name_matching_finds_renamed_products():

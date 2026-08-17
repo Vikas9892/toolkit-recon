@@ -11,6 +11,7 @@ from collections import Counter
 
 from .apps import APPS, BY_SLUG, AppSpec
 from .config import settings
+from .coverage import order_for_coverage, record_ordering
 from .extract import Extractor
 from .pipeline import Pipeline
 from .providers import ComposioProvider, DirectProvider, build_provider
@@ -53,6 +54,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--out", default=None, metavar="FILE",
         help="output filename under data/ (default pass{N}.json)",
     )
+    p.add_argument(
+        "--balance-categories", action="store_true",
+        help="order the queue for category coverage instead of list order; "
+             "use when the budget will not reach every app",
+    )
     p.add_argument("--fresh-trace", action="store_true", help="truncate logs/trace.jsonl first")
     return p.parse_args(argv)
 
@@ -66,10 +72,27 @@ def select_apps(args: argparse.Namespace) -> list[AppSpec]:
             raise SystemExit(f"unknown slug(s): {', '.join(missing)}")
         apps = [BY_SLUG[s] for s in wanted]
     if args.recheck_from:
-        apps = [a for a in apps if a.name in _weak_names(args)]
+        weak = _weak_names(args)
+        apps = [a for a in apps if a.name in weak]
+        # Weakest first. When the budget cannot cover the whole recheck queue,
+        # --limit truncates the tail, and the tail should be the rows that
+        # least needed a second look.
+        order = _confidence_order(args)
+        apps = sorted(apps, key=lambda a: (order.get(a.name, 1), a.slug))
     if args.limit:
         apps = apps[: args.limit]
     return apps
+
+
+def _confidence_order(args: argparse.Namespace) -> dict[str, int]:
+    """Map app name -> rank, lowest confidence first."""
+    fname = args.recheck_file or f"pass{args.recheck_from}.json"
+    path = settings.data_dir / fname
+    if not path.exists():
+        return {}
+    rank = {"low": 0, "medium": 1, "high": 2}
+    prior = json.loads(path.read_text(encoding="utf-8"))
+    return {r["name"]: rank.get(r["confidence"], 1) for r in prior}
 
 
 def _weak_names(args: argparse.Namespace) -> set[str]:
@@ -187,6 +210,28 @@ async def run(args: argparse.Namespace) -> int:
         before = len(apps)
         apps = [a for a in apps if a.slug not in done_rows]
         print(f"resume: {before - len(apps)} already done, {len(apps)} to go")
+    else:
+        done_rows = pipe.checkpoint.load()
+
+    if args.balance_categories:
+        # List order spends the whole budget on the first few categories. If
+        # the run stops early, level coverage beats depth: a category with no
+        # rows cannot support any claim about it.
+        done_by_cat: dict[str, int] = {}
+        for slug in done_rows:
+            spec = BY_SLUG.get(slug)
+            if spec:
+                done_by_cat[spec.category] = done_by_cat.get(spec.category, 0) + 1
+        apps = order_for_coverage(apps, done_by_cat)
+        info = record_ordering(
+            apps, done_by_cat,
+            reason=("daily token budget will not cover the full corpus; "
+                    "queue reordered so every category reaches a minimum "
+                    "viable count before any category gets an extra app"),
+        )
+        print(f"queue reordered for category coverage "
+              f"(floor {info['min_viable_per_category']}/category) "
+              f"-> data/queue_order.json")
 
     total = len(apps)
     counter = {"n": 0}

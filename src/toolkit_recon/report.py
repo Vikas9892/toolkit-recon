@@ -55,6 +55,11 @@ def summarise(rows: list[dict], traces: list[dict]) -> None:
 
     print("=" * 66)
     print(f"PASS {rows[0]['pass_number'] if rows else '?'} REPORT   ({total} rows)")
+    if total < 100:
+        # Percentages below are over N, not over the 100-app corpus. Saying so
+        # once at the top is cheaper than a reader assuming the denominator.
+        print(f"PARTIAL CORPUS: {total} of 100 apps profiled. "
+              f"All percentages are over {total}.")
     print("=" * 66)
 
     print("\nCONFIDENCE")
