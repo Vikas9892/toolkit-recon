@@ -168,6 +168,35 @@ def test_every_app_declares_official_domains():
         assert a.official_domains, f"{a.slug} has no official domains"
 
 
+def test_each_pass_asks_different_questions():
+    """A re-check pass that reused pass 1's queries would hit the same cache
+    and reproduce the same row, measuring nothing."""
+    from toolkit_recon.pipeline import queries_for
+
+    app = BY_SLUG["slack"]
+    sets = [tuple(queries_for(app, p)) for p in (1, 2, 3)]
+    assert len(set(sets)) == 3, "passes must not reuse the same queries"
+    assert all(len(s) == 2 for s in sets)
+    assert all("Slack" in q for s in sets for q in s)
+
+
+def test_unknown_pass_falls_back_to_pass_one():
+    from toolkit_recon.pipeline import queries_for
+
+    app = BY_SLUG["slack"]
+    assert queries_for(app, 99) == queries_for(app, 1)
+
+
+def test_failure_row_is_schema_valid_and_flagged():
+    from toolkit_recon.pipeline import failure_row
+
+    row = failure_row(BY_SLUG["slack"], "boom", 1)
+    assert row.confidence == "low"
+    assert row.agent_notes.startswith("RESEARCH FAILED")
+    assert len(row.evidence_urls) >= 1  # schema demands one; must not be a fake docs URL
+    assert not row.evidence_urls[0].startswith("http")
+
+
 def test_output_row_requires_at_least_one_evidence_url():
     import pytest
 

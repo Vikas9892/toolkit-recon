@@ -52,8 +52,11 @@ class Settings(BaseSettings):
     # a retry, which pays for the whole prompt again.
     llm_max_completion_tokens: int = 2_000
     llm_expected_completion_tokens: int = 1_050  # what we reserve per call
-    prompt_doc_budget: int = 6_000  # chars of doc text per call, split across docs
-    hint_chars: int = 1_200
+    # Sized so that TWO extractions fit in one 8k window. At 6,000 + 1,200 a
+    # single call reserves ~3.9k tokens, two exceed the cap, and the governor
+    # admits one per minute — halving throughput for ~10% more context.
+    prompt_doc_budget: int = 5_400  # chars of doc text per call, split across docs
+    hint_chars: int = 600
 
     # --- Paths ---
     root: Path = ROOT

@@ -32,6 +32,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--resume", action="store_true",
         help="skip apps already present in this pass's checkpoint",
     )
+    p.add_argument(
+        "--recheck-from", type=int, default=None, metavar="N",
+        help="re-profile only the weak rows of pass N (see --recheck-confidence)",
+    )
+    p.add_argument(
+        "--recheck-confidence", default="low,medium",
+        help="which confidence levels --recheck-from selects (default: low,medium)",
+    )
     p.add_argument("--fresh-trace", action="store_true", help="truncate logs/trace.jsonl first")
     return p.parse_args(argv)
 
@@ -44,9 +52,21 @@ def select_apps(args: argparse.Namespace) -> list[AppSpec]:
         if missing:
             raise SystemExit(f"unknown slug(s): {', '.join(missing)}")
         apps = [BY_SLUG[s] for s in wanted]
+    if args.recheck_from:
+        apps = [a for a in apps if a.name in _weak_names(args)]
     if args.limit:
         apps = apps[: args.limit]
     return apps
+
+
+def _weak_names(args: argparse.Namespace) -> set[str]:
+    """Names of rows in a previous pass whose confidence warrants another look."""
+    path = settings.data_dir / f"pass{args.recheck_from}.json"
+    if not path.exists():
+        raise SystemExit(f"--recheck-from {args.recheck_from}: missing {path}")
+    levels = {s.strip() for s in args.recheck_confidence.split(",") if s.strip()}
+    prior = json.loads(path.read_text(encoding="utf-8"))
+    return {r["name"] for r in prior if r["confidence"] in levels}
 
 
 def print_summary(rows: list[AppResearch], elapsed: float, provider_name: str) -> None:

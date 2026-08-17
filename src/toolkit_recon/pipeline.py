@@ -22,11 +22,22 @@ from .storage import Checkpoint, TraceLog, save_evidence
 from .throttle import domain_of
 
 
-def queries_for(app: AppSpec) -> list[str]:
-    return [
-        f"{app.name} API documentation authentication",
-        f"{app.name} API pricing developer access",
-    ]
+# Each pass asks differently on purpose. Re-running the same two queries would
+# hit the same cache and reproduce the same row, which measures nothing. Fresh
+# angles surface different pages, and the disagreement between passes is the
+# accuracy delta `pass_number` exists to capture.
+QUERY_SETS: dict[int, tuple[str, str]] = {
+    1: ("{name} API documentation authentication",
+        "{name} API pricing developer access"),
+    2: ("{name} developer portal REST API reference authentication",
+        "{name} API access requirements plan admin approval"),
+    3: ("{name} official MCP server model context protocol",
+        "{name} API getting started OAuth scopes rate limits"),
+}
+
+
+def queries_for(app: AppSpec, pass_number: int = 1) -> list[str]:
+    return [q.format(name=app.name) for q in QUERY_SETS.get(pass_number, QUERY_SETS[1])]
 
 
 def failure_row(app: AppSpec, reason: str, pass_number: int) -> AppResearch:
@@ -94,7 +105,7 @@ class Pipeline:
 
     async def _profile_inner(self, app: AppSpec, trace: AppTrace) -> AppResearch:
         # --- 1. search -------------------------------------------------
-        qs = queries_for(app)
+        qs = queries_for(app, self.pass_number)
         trace.queries = qs
 
         hits = []

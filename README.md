@@ -32,8 +32,34 @@ cp .env.example .env      # add COMPOSIO_API_KEY and GROQ_API_KEY
 python -m toolkit_recon --pass-number 1          # all 100 apps
 python -m toolkit_recon --only slack,stripe      # a couple, for a smoke test
 python -m toolkit_recon --resume                 # continue after an interrupt
-pytest -q                                        # 31 unit tests, no network
+pytest -q                                        # 34 unit tests, no network
 ```
+
+Then read the results:
+
+```bash
+python -m toolkit_recon.report                   # distributions + process metrics
+python -m toolkit_recon.report --triage          # the human review queue
+```
+
+### Re-check passes and the accuracy delta
+
+`pass_number` is not decoration — it drives a second look at the rows the
+first pass was not entitled to be sure about:
+
+```bash
+# Re-profile every low/medium row from pass 1, as pass 2
+python -m toolkit_recon --pass-number 2 --recheck-from 1
+
+# What actually moved?
+python -m toolkit_recon.report --delta 1 2
+```
+
+Each pass issues **different queries** (`QUERY_SETS` in `pipeline.py`). Reusing
+pass 1's queries would hit the same cache and reproduce the same row, which
+measures nothing. Pass 2 asks about developer portals and access requirements;
+pass 3 asks about MCP and OAuth scopes. Fields that move between passes are
+exactly the claims a single pass should not have been trusted on.
 
 ---
 
@@ -194,9 +220,10 @@ src/toolkit_recon/
   confidence.py  the confidence rules, in code
   throttle.py    per-domain politeness + retry classification
   storage.py     raw evidence, JSONL trace, atomic checkpoints
-  pipeline.py    orchestration and per-app isolation
+  pipeline.py    orchestration, per-app isolation, per-pass query sets
   cli.py         entry point and run summary
-tests/           31 tests, no network required
+  report.py      post-run analysis, triage queue, pass-to-pass delta
+tests/           34 tests, no network required
 ```
 
 ---
@@ -211,11 +238,12 @@ Stated plainly, because a reviewer will find them anyway:
 * **`has_mcp: false` means "no evidence found in the pages we fetched"**, not
   "no MCP server exists". The MCP ecosystem moves faster than vendor docs, and
   a two-query search is a weak instrument for it. Treat false as unknown.
-* **`pass_number` exists for an accuracy delta across re-runs.** Only pass 1
-  is included here; passes 2 and 3 are for re-running the low-confidence rows
-  with different queries and measuring how many claims move.
 * **Single extraction model, no ensemble.** Disagreement between two models
   would be a stronger conflict signal than one model's `signal_sources_conflict`.
+* **The delta is a churn measure, not a correctness measure.** `--delta` shows
+  which claims moved between passes, which is a good proxy for instability but
+  is not ground truth. Only a hand-labelled sample would give real accuracy,
+  and that is the obvious next step.
 * The 8,000 TPM quota, not the network, sets the floor on run time.
 
 ---
