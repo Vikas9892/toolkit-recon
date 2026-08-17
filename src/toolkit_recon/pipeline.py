@@ -65,6 +65,7 @@ def failure_row(app: AppSpec, reason: str, pass_number: int) -> AppResearch:
         confidence="low",
         agent_notes=f"RESEARCH FAILED: {reason}",
         pass_number=pass_number,
+        extracted_by=settings.llm_model,
     )
 
 
@@ -81,6 +82,8 @@ class Pipeline:
         # 48 low-confidence rows that say nothing about those products.
         self._aborted = False
         self.abort_reason: str | None = None
+        self._in_flight = 0
+        self.deadline_hits: list[dict] = []
 
     # ---------------- one app ----------------
 
@@ -99,7 +102,19 @@ class Pipeline:
             trace.status = "ok"
         except TimeoutError as e:
             reason = (f"exceeded the {settings.app_deadline:.0f}s per-app deadline "
-                      f"(stalled after {len(trace.urls_fetched)} document(s))")
+                      f"in stage '{trace.stage}' after "
+                      f"{len(trace.urls_fetched)} document(s), "
+                      f"{self._in_flight} worker(s) in flight")
+            trace.deadline_hit = True
+            trace.workers_in_flight = self._in_flight
+            # Collected so clustering by stage or concurrency is evidence,
+            # not suspicion, if these ever recur.
+            self.deadline_hits.append({
+                "slug": app.slug, "name": app.name, "stage": trace.stage,
+                "elapsed_s": round(time.monotonic() - started, 1),
+                "workers_in_flight": self._in_flight,
+                "docs_fetched": len(trace.urls_fetched),
+            })
             trace.status = "failed"
             trace.error = reason
             trace.final_confidence = "low"
@@ -142,6 +157,7 @@ class Pipeline:
 
     async def _profile_inner(self, app: AppSpec, trace: AppTrace) -> AppResearch:
         # --- 1. search -------------------------------------------------
+        trace.stage = "search"
         qs = queries_for(app, self.pass_number)
         trace.queries = qs
 
@@ -153,6 +169,7 @@ class Pipeline:
                 answers.append(hint)
 
         # --- 2. rank ---------------------------------------------------
+        trace.stage = "rank"
         ranked = rank(hits, app.official_domains, settings.max_docs_per_app)
         trace.urls_ranked = ranked
 
@@ -160,6 +177,7 @@ class Pipeline:
             raise RuntimeError("search returned no usable URLs")
 
         # --- 3. fetch --------------------------------------------------
+        trace.stage = "fetch"
         docs: list[FetchedDoc] = []
         for hit in ranked:
             doc = await self.provider.fetch(hit.url)
@@ -202,6 +220,7 @@ class Pipeline:
             )
 
         # --- 4. extract (structured output) ----------------------------
+        trace.stage = "extract"
         payload = [(d.url, d.text) for d in good]
         extraction, tokens = await self.extractor.extract(
             app.name, app.category, payload, hint="\n\n".join(answers)[:2000]
@@ -211,6 +230,7 @@ class Pipeline:
         trace.total_tokens = tokens["total_tokens"]
 
         # --- 5. confidence, derived in code ----------------------------
+        trace.stage = "score"
         conf, reason = assign_confidence(
             extraction,
             official_docs_reached=bool(official_reached),
@@ -261,6 +281,7 @@ class Pipeline:
             confidence=conf,
             agent_notes=notes.strip(),
             pass_number=self.pass_number,
+            extracted_by=settings.llm_model,
         )
 
     # ---------------- the run ----------------
@@ -275,7 +296,11 @@ class Pipeline:
             async with self.sem:
                 if self._aborted:
                     return
-                row, trace = await self.profile_app(app)
+                self._in_flight += 1
+                try:
+                    row, trace = await self.profile_app(app)
+                finally:
+                    self._in_flight -= 1
             results[app.slug] = row
             await self.trace_log.write(trace)
             await self.checkpoint.record(app.slug, row)  # flush after EVERY app

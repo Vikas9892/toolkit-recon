@@ -53,6 +53,9 @@ class AppResearch(BaseModel):
     confidence: Confidence
     agent_notes: str
     pass_number: int
+    # Which extractor produced this row. Surfaced on the row itself, not just
+    # the trace, so a reviewer can filter by model without joining files.
+    extracted_by: str = ''
 
     @field_validator("auth_methods", "api_style", mode="after")
     @classmethod
@@ -166,4 +169,9 @@ class AppTrace(BaseModel):
     confidence_reason: str = ""
     status: Literal["ok", "failed"] = "ok"
     error: str | None = None
+    # Where the app was when it was cancelled. If deadline timeouts cluster on
+    # one stage, that is evidence rather than suspicion.
+    stage: str = "queued"
+    deadline_hit: bool = False
+    workers_in_flight: int = 0
     composio_request_ids: list[str] = []
