@@ -526,6 +526,30 @@
     "extracted_by": "openai/gpt-oss-20b"
   },
   {
+    "name": "Jira",
+    "category": "Project Management",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://jira"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 196,990/200,000 used, 3,010 left, this call needed 4,224. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
     "name": "Asana",
     "category": "Project Management",
     "one_liner": "Asana is a project‑management platform that exposes a public REST API for programmatic access to tasks, projects, and related resources.",
@@ -553,6 +577,33 @@
     "extracted_by": "openai/gpt-oss-20b"
   },
   {
+    "name": "ClickUp",
+    "category": "Project Management",
+    "one_liner": "ClickUp is a project management platform that offers a public REST API for building integrations and apps.",
+    "auth_methods": [
+      "API Key",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": true,
+    "mcp_evidence_url": "https://developer.clickup.com",
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developer.clickup.com/docs/authentication",
+      "https://developer.clickup.com",
+      "https://developer.clickup.com/docs/Getting%20Started"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The documentation does not explicitly state a paid plan requirement for API access; rate limits vary by workspace plan but no tier gating is mentioned. The breadth of the API is inferred from the presence of a public spec and several endpoints, but the full surface is not detailed.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
     "name": "Basecamp",
     "category": "Project Management",
     "one_liner": "Basecamp is a project‑management platform that offers a public REST API authenticated via OAuth 2.0 (and API keys for some apps).",
@@ -576,6 +627,30 @@
     ],
     "confidence": "high",
     "agent_notes": "API breadth inferred as moderate based on limited endpoint documentation; full surface not listed in supplied docs.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "GitHub",
+    "category": "Developer Tools",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://github"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 196,708/200,000 used, 3,292 left, this call needed 4,093. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.",
     "pass_number": 1,
     "extracted_by": "openai/gpt-oss-20b"
   },
@@ -661,6 +736,33 @@
     "extracted_by": "openai/gpt-oss-20b"
   },
   {
+    "name": "Docker Hub",
+    "category": "Developer Tools",
+    "one_liner": "Docker Hub is a cloud‑based container registry for storing, managing, and sharing Docker images.",
+    "auth_methods": [
+      "Basic",
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": true,
+    "mcp_evidence_url": "https://docs.docker.com/docker-hub",
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://docs.docker.com/reference/api/registry/auth",
+      "https://docs.docker.com/docker-hub",
+      "https://docs.docker.com/subscription"
+    ],
+    "confidence": "medium",
+    "agent_notes": "The documentation does not explicitly state which plan grants API access; it only indicates that Docker Hub is available to all users and that subscription plans affect usage limits. Therefore the tier requirement is inferred as free for basic access but may be limited by plan for higher usage.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
     "name": "Box",
     "category": "Storage & Documents",
     "one_liner": "Box provides a cloud storage and file sharing platform with APIs for manipulating files, folders, users, and enterprise content management.",
@@ -714,6 +816,54 @@
     "extracted_by": "openai/gpt-oss-20b"
   },
   {
+    "name": "Confluence",
+    "category": "Storage & Documents",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://confluence"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 196,985/200,000 used, 3,015 left, this call needed 3,970. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Coda",
+    "category": "Storage & Documents",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://coda"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 198,459/200,000 used, 1,541 left, this call needed 4,132. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
     "name": "Braze",
     "category": "Marketing",
     "one_liner": "Braze is a customer engagement platform that offers REST APIs for managing user profiles, orchestrating multi‑channel messaging campaigns, and exporting analytics.",
@@ -737,6 +887,32 @@
     ],
     "confidence": "high",
     "agent_notes": "API key is used as a bearer token; paid plan explicitly required; no free trial; no admin enablement required.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Customer.io",
+    "category": "Marketing",
+    "one_liner": "Customer.io is a marketing automation platform that offers APIs for tracking events, sending messages, and managing customer data.",
+    "auth_methods": [
+      "Basic",
+      "Bearer Token"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://docs.customer.io/integrations/api/track-vs-cdp-api",
+      "https://docs.customer.io/accounts/settings/managing-credentials"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Authentication varies by API: Track and Pipelines use Basic auth, App API uses Bearer token. No explicit plan tier requirement noted.",
     "pass_number": 1,
     "extracted_by": "openai/gpt-oss-20b"
   },
@@ -767,6 +943,33 @@
     "extracted_by": "openai/gpt-oss-20b"
   },
   {
+    "name": "Brevo",
+    "category": "Marketing",
+    "one_liner": "Brevo is a marketing platform that offers a public REST API accessible via API key or OAuth 2.0 authentication.",
+    "auth_methods": [
+      "API Key",
+      "Bearer Token"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developers.brevo.com/docs/api-key-authentication.mdx",
+      "https://developers.brevo.com/docs/oauth-integration-guide",
+      "https://developers.brevo.com/docs/oauth.mdx"
+    ],
+    "confidence": "high",
+    "agent_notes": "API breadth inferred as moderate due to limited endpoint coverage in the provided docs; no explicit statement of full surface. No evidence of admin approval or partner gating required for API access. [pipeline: MCP citation was not in the fetched set]",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
     "name": "Freshdesk",
     "category": "Customer Support",
     "one_liner": "Freshdesk is a cloud‑based customer support platform that offers ticketing and helpdesk APIs.",
@@ -788,6 +991,33 @@
     ],
     "confidence": "medium",
     "agent_notes": "Tier for API access is not explicitly stated in the documents; inferred as free based on lack of restriction. No evidence of a Model Context Protocol server.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Help Scout",
+    "category": "Customer Support",
+    "one_liner": "Help Scout provides APIs for managing customer support inboxes, conversations, customers, and docs.",
+    "auth_methods": [
+      "OAuth2",
+      "API Key"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://developer.helpscout.com/mailbox-api/overview/authentication",
+      "https://developer.helpscout.com",
+      "https://developer.helpscout.com/llms.txt"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Access tier inferred as self‑serve free because no paid‑plan requirement is mentioned. API breadth judged moderate due to multiple resource families (Inbox, Docs, Webhooks).",
     "pass_number": 1,
     "extracted_by": "openai/gpt-oss-20b"
   },
@@ -815,6 +1045,30 @@
     ],
     "confidence": "medium",
     "agent_notes": "Auth for private apps uses HTTP Basic Auth with an API key; public apps require OAuth2. No paid plan or admin approval is mentioned. No MCP server is referenced.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Kustomer",
+    "category": "Customer Support",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://kustomer"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 196,712/200,000 used, 3,288 left, this call needed 3,610. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.",
     "pass_number": 1,
     "extracted_by": "openai/gpt-oss-20b"
   },
@@ -873,6 +1127,57 @@
     "extracted_by": "openai/gpt-oss-20b"
   },
   {
+    "name": "Gusto",
+    "category": "HR & Recruiting",
+    "one_liner": "Gusto offers payroll and HR APIs that use OAuth2 and API tokens for authentication.",
+    "auth_methods": [
+      "OAuth2",
+      "API Key"
+    ],
+    "access_tier": "partner_gated",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes_with_caveats",
+    "primary_blocker": "Production pre‑approval required from Gusto Partnerships team",
+    "evidence_urls": [
+      "https://docs.gusto.com/app-integrations/docs/oauth2",
+      "https://docs.gusto.com/app-integrations/docs/authentication",
+      "https://docs.gusto.com/embedded-payroll/docs/authentication-and-authorization"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Access tier inferred as partner_gated due to pre‑approval requirement; API breadth judged moderate based on available endpoints.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Greenhouse",
+    "category": "HR & Recruiting",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://greenhouse"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: exceeded the 600s per-app deadline in stage 'extract' after 3 document(s), 8 worker(s) in flight",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
     "name": "Deel",
     "category": "HR & Recruiting",
     "one_liner": "Deel provides a REST API for managing contracts, workers, and payments in HR and recruiting workflows.",
@@ -896,6 +1201,30 @@
     ],
     "confidence": "medium",
     "agent_notes": "Auth methods inferred from documentation; no explicit paid tier requirement stated, so assumed free access. No conflict among sources. [pipeline: MCP citation was not in the fetched set]",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Oracle NetSuite",
+    "category": "Finance & Accounting",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://netsuite"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 196,846/200,000 used, 3,154 left, this call needed 4,119. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.",
     "pass_number": 1,
     "extracted_by": "openai/gpt-oss-20b"
   },
@@ -1006,6 +1335,32 @@
     "extracted_by": "openai/gpt-oss-20b"
   },
   {
+    "name": "Looker",
+    "category": "Analytics & Data",
+    "one_liner": "Looker is a data analytics platform that exposes a REST API for managing data, users, and content",
+    "auth_methods": [
+      "OAuth2"
+    ],
+    "access_tier": "self_serve_free",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "moderate",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes",
+    "primary_blocker": null,
+    "evidence_urls": [
+      "https://docs.cloud.google.com/looker/docs/reference/looker-api/latest/methods/Auth",
+      "https://developers.looker.com/api/getting-started",
+      "https://docs.cloud.google.com/looker/docs/api-auth"
+    ],
+    "confidence": "medium",
+    "agent_notes": "Tier inferred as self-serve free because no explicit plan requirement is stated in the documents; product description derived from API documentation context.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
     "name": "Amplitude",
     "category": "Analytics & Data",
     "one_liner": "Amplitude is a product analytics platform that provides event tracking, dashboards, and APIs for data analysis.",
@@ -1029,6 +1384,30 @@
     ],
     "confidence": "medium",
     "agent_notes": "The pricing page lists a Free plan but does not explicitly state that API access is included; inferred from the presence of API documentation and key management in the free plan context.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Mixpanel",
+    "category": "Analytics & Data",
+    "one_liner": "",
+    "auth_methods": [
+      "Unknown"
+    ],
+    "access_tier": "no_public_api",
+    "api_style": [
+      "None"
+    ],
+    "api_breadth": "narrow",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "no",
+    "primary_blocker": "research failed; not assessed",
+    "evidence_urls": [
+      "unresolved://mixpanel"
+    ],
+    "confidence": "low",
+    "agent_notes": "RESEARCH FAILED: provider daily token budget exhausted: daily token budget exhausted: 196,851/200,000 used, 3,149 left, this call needed 3,320. Retrying will not help until the daily window resets. The checkpoint is intact — re-run with --resume after the reset, or set LLM_MODEL to a model with its own budget.",
     "pass_number": 1,
     "extracted_by": "openai/gpt-oss-20b"
   },
@@ -1109,6 +1488,33 @@
     ],
     "confidence": "medium",
     "agent_notes": "No explicit mention of paid plan requirement; API appears publicly available.",
+    "pass_number": 1,
+    "extracted_by": "openai/gpt-oss-20b"
+  },
+  {
+    "name": "Squarespace",
+    "category": "E-commerce",
+    "one_liner": "Squarespace Commerce APIs allow developers to programmatically manage e-commerce features such as inventory, orders, discounts, contacts, analytics, and webhooks for Squarespace merchant sites.",
+    "auth_methods": [
+      "API Key",
+      "OAuth2"
+    ],
+    "access_tier": "paid_plan_required",
+    "api_style": [
+      "REST"
+    ],
+    "api_breadth": "broad",
+    "has_mcp": false,
+    "mcp_evidence_url": null,
+    "buildable_today": "yes_with_caveats",
+    "primary_blocker": "API access requires a paid Commerce Advanced plan",
+    "evidence_urls": [
+      "https://developers.squarespace.com/commerce-apis/authentication-and-permissions",
+      "https://developers.squarespace.com/commerce-apis/oauth",
+      "https://developers.squarespace.com/commerce-apis/making-requests"
+    ],
+    "confidence": "high",
+    "agent_notes": "The documentation explicitly states that API key generation and custom application development are available only with the Commerce Advanced plan, and OAuth is required for Extensions. No mention of a Model Context Protocol server was found.",
     "pass_number": 1,
     "extracted_by": "openai/gpt-oss-20b"
   },
