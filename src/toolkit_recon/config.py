@@ -11,12 +11,20 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 ROOT = Path(__file__).resolve().parents[2]
 
 # Load .env without clobbering anything already exported in the shell.
-load_dotenv(ROOT / ".env", override=False)
+# utf-8-sig, not utf-8: a BOM makes the first line parse as
+# "\ufeffCOMPOSIO_API_KEY", so the key silently vanishes and the run
+# quietly falls back to the keyless provider. Windows editors and
+# PowerShell's Set-Content -Encoding utf8 both write BOMs by default.
+load_dotenv(ROOT / ".env", override=False, encoding="utf-8-sig")
 
 
 def _clean(name: str) -> str | None:
-    """Treat blank env vars as absent — a blank key is not a key."""
-    v = os.environ.get(name)
+    """Treat blank env vars as absent — a blank key is not a key.
+
+    Also tolerates a BOM-prefixed name, so a UTF-8-with-BOM .env cannot make
+    the first variable in the file invisible.
+    """
+    v = os.environ.get(name) or os.environ.get("\ufeff" + name)
     return v.strip() or None if v else None
 
 

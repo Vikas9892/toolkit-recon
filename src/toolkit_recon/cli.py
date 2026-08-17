@@ -154,10 +154,18 @@ async def run(args: argparse.Namespace) -> int:
         provider = build_provider()
 
     if provider.name == "direct" and args.provider == "auto":
-        print(
-            "! COMPOSIO_API_KEY not set - falling back to the keyless provider.\n"
-            "  Set it to route search/fetch through Composio.",
-            file=sys.stderr,
+        # Refuse rather than warn. A warning on stderr scrolls past and the run
+        # happily builds an entire corpus from a different evidence source than
+        # intended -- which is exactly what happened when a UTF-8 BOM in .env
+        # made COMPOSIO_API_KEY invisible and three apps were profiled off
+        # DuckDuckGo before anyone noticed.
+        raise SystemExit(
+            "COMPOSIO_API_KEY is not set, so search/fetch would silently fall "
+            "back to the keyless provider and the whole corpus would rest on a "
+            "different evidence source.\n"
+            "  - to use Composio: set COMPOSIO_API_KEY (check .env is UTF-8 "
+            "WITHOUT a BOM; a BOM hides the first variable)\n"
+            "  - to accept the fallback deliberately: --provider direct"
         )
 
     apps = select_apps(args)
