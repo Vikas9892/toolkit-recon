@@ -9,6 +9,7 @@ happens inside `profile_app` can take down the other 99.
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 import traceback
 
@@ -34,6 +35,10 @@ QUERY_SETS: dict[int, tuple[str, str]] = {
     3: ("{name} official MCP server model context protocol",
         "{name} API getting started OAuth scopes rate limits"),
 }
+
+
+# Word-boundary "mcp" so "mcpherson" and similar do not register as a hit.
+MCP_MENTION = re.compile(r"model context protocol|\bmcp\b", re.I)
 
 
 def queries_for(app: AppSpec, pass_number: int = 1) -> list[str]:
@@ -189,11 +194,20 @@ class Pipeline:
         cited = [u for u in extraction.evidence_urls if u in fetched]
         evidence = cited or sorted(fetched)
 
+        # An MCP claim has to survive two checks: the cited page must be one we
+        # actually fetched, and that page must actually mention MCP. Checking
+        # the text catches the case where the model attaches a real URL to an
+        # invented finding — a plausible-looking citation is the failure mode
+        # a URL-only check cannot see.
+        by_url = {d.url: d.text for d in good}
         mcp_url = extraction.mcp_evidence_url
-        if mcp_url and mcp_url not in fetched:
-            mcp_url = None  # unverifiable MCP citation is dropped, not trusted
+        mcp_note = ""
+        if mcp_url and mcp_url not in by_url:
+            mcp_url, mcp_note = None, " [pipeline: MCP citation was not in the fetched set]"
+        elif mcp_url and not MCP_MENTION.search(by_url[mcp_url]):
+            mcp_url, mcp_note = None, " [pipeline: cited MCP page does not mention MCP]"
 
-        notes = extraction.agent_notes
+        notes = extraction.agent_notes + mcp_note
         if extraction.evidence_urls and not cited:
             notes += " [pipeline: model cited URLs outside the fetched set; replaced with fetched URLs]"
         if not official_reached:

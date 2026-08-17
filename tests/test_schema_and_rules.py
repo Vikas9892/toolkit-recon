@@ -168,6 +168,16 @@ def test_every_app_declares_official_domains():
         assert a.official_domains, f"{a.slug} has no official domains"
 
 
+def test_mcp_mention_pattern_is_word_bounded():
+    """Guards the MCP verification: a real mention counts, a substring does not."""
+    from toolkit_recon.pipeline import MCP_MENTION
+
+    assert MCP_MENTION.search("The OpenAPI Dev MCP server connects assistants")
+    assert MCP_MENTION.search("uses the Model Context Protocol")
+    assert not MCP_MENTION.search("contact Dr. McPherson for access")
+    assert not MCP_MENTION.search("authenticate with OAuth2 and a bearer token")
+
+
 def test_thin_documents_do_not_count_as_evidence():
     """A nav shell or cookie wall extracts to a couple of sentences. Counting
     it would let an empty page satisfy 'official docs reached'."""
