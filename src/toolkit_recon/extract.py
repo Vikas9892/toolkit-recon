@@ -21,7 +21,7 @@ from .ratelimit import TokenRateLimiter, estimate_tokens
 from .schema import Extraction
 from .throttle import PermanentError, RetryableError, with_backoff
 
-SYSTEM = """\
+SYSTEM_PASS1 = """\
 You are a research analyst profiling SaaS products for an agent-tooling team.
 The team builds toolkits that let AI agents call these products' APIs, so the
 question behind every field is: could an engineer ship a working toolkit for
@@ -52,6 +52,55 @@ Field guidance:
   admin enablement, narrow surface); "no" when there is no usable public API
   or access is effectively closed.
 """
+
+# Pass 2 deliberately changes the *lens*, not just the wording. Pass 1 asks
+# "what does this product offer?"; pass 2 asks "what will break when I try to
+# ship it?". Two passes that agree despite reasoning from opposite priors are
+# genuine corroboration. Re-running the same framing with new search terms
+# would mostly re-measure the same bias.
+SYSTEM_PASS2 = """\
+You are a senior integration engineer doing a build-readiness review. Your team
+has been asked to ship an agent toolkit for this product next sprint, and your
+job is to find the reasons that will fail — before the sprint starts, not after.
+
+Work adversarially. For every claim the documents appear to support, ask what
+the documents do NOT say. Vendors describe the happy path; you are looking for
+the gate behind it.
+
+Rules:
+- Use ONLY the supplied documents. Do not use prior knowledge to fill gaps.
+- Marketing language is not evidence. "Powerful API" means nothing; a
+  documented endpoint with a documented auth scheme means something.
+- Where the documents are silent, prefer the more restrictive reading and say
+  so in the notes. Silence about a free tier is not evidence of a free tier.
+- evidence_urls must be chosen from the SOURCE URLs listed with the documents.
+- has_mcp is true ONLY with an explicit reference to a Model Context Protocol
+  server for this product. Default false.
+- primary_blocker is the thing most likely to stop the sprint. Null only when
+  you genuinely cannot find one.
+- The three signal_* booleans are audited against what was actually fetched.
+  Report them honestly; overclaiming is worse than a low confidence score.
+
+Field guidance:
+- access_tier: pick the tier a new developer would actually hit, not the best
+  case. no_public_api when there is no documented public API; partner_gated
+  when a commercial/partner agreement is needed; admin_approval when a
+  workspace admin must enable it; paid_plan_required when a paid tier is
+  required; self_serve_trial / self_serve_free only when genuinely open.
+- api_breadth: narrow = a handful of endpoints or one domain object;
+  moderate = several resource families; broad = most of the product surface.
+  Judge by what is documented, not by how large the product is.
+- buildable_today: "yes" only when auth is self-serve AND the API is publicly
+  documented AND nothing gates it. "yes_with_caveats" when a real constraint
+  exists. "no" when there is no usable public API or access is effectively
+  closed.
+"""
+
+SYSTEM_BY_PASS: dict[int, str] = {1: SYSTEM_PASS1, 2: SYSTEM_PASS2, 3: SYSTEM_PASS2}
+
+
+def system_for(pass_number: int) -> str:
+    return SYSTEM_BY_PASS.get(pass_number, SYSTEM_PASS1)
 
 
 def strict_schema(model: type[Extraction]) -> dict[str, Any]:
@@ -112,11 +161,13 @@ def build_user_prompt(name: str, category: str, docs: list[tuple[str, str]], hin
 
 
 class Extractor:
-    def __init__(self) -> None:
+    def __init__(self, pass_number: int = 1) -> None:
         if not settings.llm_api_key:
             raise RuntimeError(
                 "No LLM key. Set GROQ_API_KEY (or LLM_API_KEY) in the environment."
             )
+        self.pass_number = pass_number
+        self.system = system_for(pass_number)
         self._schema = strict_schema(Extraction)
         self.limiter = TokenRateLimiter(
             tokens_per_minute=settings.llm_tokens_per_minute
@@ -142,7 +193,7 @@ class Extractor:
             "temperature": 0,
             "max_completion_tokens": settings.llm_max_completion_tokens,
             "messages": [
-                {"role": "system", "content": SYSTEM},
+                {"role": "system", "content": self.system},
                 {"role": "user", "content": prompt},
             ],
             "response_format": {
@@ -158,7 +209,7 @@ class Extractor:
         # Reserve against the *expected* completion size, not the safety cap;
         # `settle` corrects either way once the API reports real usage.
         estimated = (
-            estimate_tokens(SYSTEM)
+            estimate_tokens(self.system)
             + estimate_tokens(prompt)
             + settings.llm_expected_completion_tokens
         )

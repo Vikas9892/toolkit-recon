@@ -108,8 +108,10 @@ class Checkpoint:
         return dict(self._rows)
 
 
-def write_output(rows: list[AppResearch], pass_number: int) -> Path:
-    path = settings.data_dir / f"pass{pass_number}.json"
+def write_output(
+    rows: list[AppResearch], pass_number: int, filename: str | None = None
+) -> Path:
+    path = settings.data_dir / (filename or f"pass{pass_number}.json")
     payload = [r.model_dump() for r in rows]
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     return path

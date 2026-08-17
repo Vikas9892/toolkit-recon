@@ -40,6 +40,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--recheck-confidence", default="low,medium",
         help="which confidence levels --recheck-from selects (default: low,medium)",
     )
+    p.add_argument(
+        "--recheck-file", default=None,
+        help="file --recheck-from reads (default pass{N}.json; "
+             "use pass1.validated.json to respect Layer 1 corrections)",
+    )
+    p.add_argument(
+        "--include-flagged", action="store_true",
+        help="also re-profile every app in validation_report.json's recheck queue",
+    )
+    p.add_argument(
+        "--out", default=None, metavar="FILE",
+        help="output filename under data/ (default pass{N}.json)",
+    )
     p.add_argument("--fresh-trace", action="store_true", help="truncate logs/trace.jsonl first")
     return p.parse_args(argv)
 
@@ -60,13 +73,30 @@ def select_apps(args: argparse.Namespace) -> list[AppSpec]:
 
 
 def _weak_names(args: argparse.Namespace) -> set[str]:
-    """Names of rows in a previous pass whose confidence warrants another look."""
-    path = settings.data_dir / f"pass{args.recheck_from}.json"
+    """Names of rows a previous pass was not entitled to be confident about.
+
+    Two sources, unioned: weak confidence, and anything Layer 1 flagged. A row
+    can be structurally broken while still claiming high confidence, so the
+    flag list is not a subset of the confidence list.
+    """
+    fname = args.recheck_file or f"pass{args.recheck_from}.json"
+    path = settings.data_dir / fname
     if not path.exists():
         raise SystemExit(f"--recheck-from {args.recheck_from}: missing {path}")
     levels = {s.strip() for s in args.recheck_confidence.split(",") if s.strip()}
     prior = json.loads(path.read_text(encoding="utf-8"))
-    return {r["name"] for r in prior if r["confidence"] in levels}
+    names = {r["name"] for r in prior if r["confidence"] in levels}
+
+    if args.include_flagged:
+        rep = settings.data_dir / "validation_report.json"
+        if not rep.exists():
+            raise SystemExit(
+                "--include-flagged needs data/validation_report.json; "
+                "run `python -m toolkit_recon.validate` first"
+            )
+        queue = set(json.loads(rep.read_text(encoding="utf-8"))["recheck_queue"])
+        names |= {a.name for a in APPS if a.slug in queue}
+    return names
 
 
 def print_summary(rows: list[AppResearch], elapsed: float, provider_name: str) -> None:
@@ -135,7 +165,9 @@ async def run(args: argparse.Namespace) -> int:
     if versions:
         print("composio tool versions pinned: " + json.dumps(versions))
 
-    extractor = Extractor()
+    # The extraction framing changes with the pass: pass 2 reasons from
+    # opposite priors so that agreement between passes means something.
+    extractor = Extractor(pass_number=args.pass_number)
     pipe = Pipeline(provider, extractor, pass_number=args.pass_number)
 
     if args.fresh_trace:
@@ -176,7 +208,7 @@ async def run(args: argparse.Namespace) -> int:
         elif a.slug in done_rows:
             rows.append(AppResearch.model_validate(done_rows[a.slug]))
 
-    out = write_output(rows, args.pass_number)
+    out = write_output(rows, args.pass_number, args.out)
     print(f"\nwrote {len(rows)} rows -> {out}")
     print_summary(rows, time.monotonic() - started, provider.name)
     return 0
